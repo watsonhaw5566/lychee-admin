@@ -102,6 +102,72 @@ cp -r vendor/watsonhaw/lychee-admin/asset/* public/lychee/
 
 访问 `/admin`，使用默认账号 `admin` / `admin123` 登录。
 
+## 注册资源
+
+每个需要在后台管理的模型对应一个继承 `AdminResource` 的子类，声明配置属性即可自动获得 CRUD 界面，无需编写控制器。
+
+```php
+<?php
+
+namespace App\Admin;
+
+use LycheeAdmin\AdminResource;
+use App\Model\Article;
+
+class ArticleAdmin extends AdminResource
+{
+    protected string $model = Article::class;
+    protected string $title = '文章';
+    protected string $icon  = 'layui-icon layui-icon-read';
+    protected string $group = '内容管理';
+
+    /** 列表显示字段 */
+    protected array $listFields = ['id', 'title', 'category_id', 'status', 'create_time'];
+
+    /** 表单字段：字段名 => 类型（或完整配置数组） */
+    protected array $formFields = [
+        'title'       => 'text',
+        'category_id' => ['type' => 'select', 'options' => [1 => '技术', 2 => '生活']],
+        'content'     => 'textarea',
+        'status'      => ['type' => 'radio', 'options' => [1 => '发布', 0 => '草稿']],
+    ];
+
+    protected array $searchFields = ['title'];
+    protected array $filterFields = ['status'];
+}
+```
+
+在 `AdminServiceProvider` 或插件启动逻辑中注册：
+
+```php
+app(AdminManager::class)->register(ArticleAdmin::class);
+```
+
+### 字段标签
+
+列表表头、表单 label、搜索框占位符默认使用英文字段名。通过 `$fieldLabels` 声明中文字段名：
+
+```php
+protected array $fieldLabels = [
+    'title'       => '标题',
+    'category_id' => '分类',
+    'content'     => '内容',
+    'status'      => '状态',
+];
+```
+
+**解析优先级**：
+
+1. 子类声明的 `$fieldLabels`
+2. 内置通用映射（`id` → ID、`create_time` → 创建时间、`update_time` → 更新时间）
+3. 字段名本身（兜底）
+
+> 字段标签完全由代码配置驱动，不读取数据库 comment，因此对所有数据库类型通用。未声明的字段会直接显示英文字段名。
+
+### 支持的表单字段类型
+
+`text`、`textarea`、`number`、`password`、`select`、`radio`、`checkbox`、`switch`、`image`、`file`、`richtext`、`date`。
+
 ## License
 
 MIT
