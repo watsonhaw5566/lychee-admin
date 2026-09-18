@@ -190,6 +190,122 @@ protected array $formFields = [
 
 常用规则速查：`require`、`email`、`url`、`number`、`integer`、`date`、`length:min,max`、`max:n`、`min:n`、`between:a,b`、`in:a,b,c`、`regex:/pattern/`。更多规则参见 [think-validate 文档](https://doc.thinkphp.cn/@think-validate)。
 
+### 字段类型详表
+
+| 类型 | 说明 | 常用配置项 |
+|------|------|-----------|
+| `text` | 单行文本 | `required`, `rules` |
+| `textarea` | 多行文本 | `required`, `rules` |
+| `number` | 数字输入 | `required`, `rules` |
+| `password` | 密码（编辑时留空不修改原值） | `required`, `rules` |
+| `select` | 下拉选择 | `options`, `multiple`, `required` |
+| `radio` | 单选按钮 | `options`, `required` |
+| `checkbox` | 多选框 | `options` |
+| `switch` | 开关 | — |
+| `date` | 日期选择 | `required` |
+| `image` | 图片上传（单张） | `multiple` 开启多图 |
+| `file` | 文件上传（单个） | `multiple` 开启多文件 |
+| `richtext` | 富文本编辑器（wangEditor-next） | — |
+
+**多图 / 多文件上传**：将 `image` 或 `file` 类型的 `multiple` 设为 `true`，字段将以 `name="field[]"` 渲染并支持多选，存储为 JSON 数组字符串（如 `["uploads/admin/2026-09/a.png","uploads/admin/2026-09/b.png"]`）。编辑时自动解码回显。
+
+```php
+protected array $formFields = [
+    'gallery'     => ['type' => 'image', 'multiple' => true],
+    'attachments' => ['type' => 'file', 'multiple' => true],
+];
+```
+
+### 权限控制
+
+通过以下布尔属性控制资源的增删改权限（默认全部为 `true`）：
+
+```php
+protected bool $canCreate = true;   // 是否允许新增
+protected bool $canUpdate = true;   // 是否允许编辑
+protected bool $canDelete = true;   // 是否允许删除
+```
+
+设为 `false` 后，对应按钮不会在列表页显示，且后端接口也会拒绝操作。
+
+### 钩子方法
+
+子类可覆盖以下钩子方法，在不修改控制器的前提下注入自定义业务逻辑：
+
+| 钩子 | 调用时机 | 用途 |
+|------|---------|------|
+| `indexQuery(Query $query)` | 列表查询前 | 追加查询条件、关联预加载 |
+| `beforeSave(array $data, ?Model $existing)` | 保存前（新增+编辑） | 处理/补全数据 |
+| `afterSave(Model $model)` | 保存后（新增+编辑） | 清缓存、发通知等 |
+| `beforeDelete(Model $model)` | 删除前 | 检查关联数据 |
+| `formatList(Model $item)` | 列表数据格式化 | 枚举转文本、时间戳格式化 |
+
+```php
+use think\db\Query;
+use think\Model;
+
+class ArticleAdmin extends AdminResource
+{
+    // 列表查询：只查未删除的，预加载分类
+    protected function indexQuery(Query $query): Query
+    {
+        return $query->with('category')->where('deleted', 0);
+    }
+
+    // 保存前：新增时写入作者 ID
+    protected function beforeSave(array $data, ?Model $existing = null): array
+    {
+        if ($existing === null) {
+            $data['author_id'] = session('admin_id');
+        }
+        return $data;
+    }
+
+    // 列表格式化：状态码转文本
+    protected function formatList(Model $item): array
+    {
+        $arr = $item->toArray();
+        $arr['status_text'] = $item->status ? '发布' : '草稿';
+        return $arr;
+    }
+}
+```
+
+### 覆盖内置资源
+
+插件内置了 `UserAdmin`、`RoleAdmin`、`MenuAdmin`、`PermissionAdmin` 四个资源。如需自定义（如给用户表单增加字段、修改查询逻辑），继承内置资源类并重新注册即可：
+
+```php
+<?php
+
+namespace App\Admin;
+
+use LycheeAdmin\Admin\UserAdmin;
+
+class MyUserAdmin extends UserAdmin
+{
+    // 覆盖表单字段，增加手机号字段
+    protected array $formFields = [
+        'username' => ['type' => 'text', 'required' => true],
+        'phone'    => ['type' => 'text', 'rules' => 'mobile'],
+        'password' => ['type' => 'password', 'required' => true],
+        'roles'    => ['type' => 'checkbox', 'options' => []],
+        'status'   => ['type' => 'switch'],
+    ];
+
+    // 覆盖钩子
+    protected function beforeSave(array $data, ?Model $existing = null): array
+    {
+        return parent::beforeSave($data, $existing);
+    }
+}
+
+// 注册时以模型类名为 key，后注册的覆盖先注册的
+app(\LycheeAdmin\AdminManager::class)->register(MyUserAdmin::class);
+```
+
+> 注册以**模型类名为 key**，后注册的会覆盖先注册的，因此你的自定义资源会自动替换内置实现。
+
 ## License
 
 MIT
