@@ -1,0 +1,102 @@
+{% extends "@admin/layout.twig" %}
+
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-header">{{ title }}</div>
+    <div class="layui-card-body">
+        <form class="layui-form" id="crud-form" style="max-width:600px;">
+            {% for field, config in admin.getFormFields() %}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{{ field }}</label>
+                <div class="layui-input-block">
+                    {% set type = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
+                    {% set value = data[field] ?? '' %}
+
+                    {% if type == 'textarea' %}
+                    <textarea name="{{ field }}" class="layui-textarea">{{ value }}</textarea>
+
+                    {% elseif type == 'select' %}
+                    <select name="{{ field }}">
+                        {% for val, label in config.options ?? {} %}
+                        <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    {% elseif type == 'radio' %}
+                    {% for val, label in config.options ?? {} %}
+                    <input type="radio" name="{{ field }}" value="{{ val }}" title="{{ label }}" {% if value == val %}checked{% endif %}>
+                    {% endfor %}
+
+                    {% elseif type == 'checkbox' %}
+                    {% for val, label in config.options ?? {} %}
+                    <input type="checkbox" name="{{ field }}[]" value="{{ val }}" title="{{ label }}" lay-skin="primary">
+                    {% endfor %}
+
+                    {% elseif type == 'switch' %}
+                    <input type="checkbox" name="{{ field }}" lay-skin="switch" {% if value %}checked{% endif %}>
+
+                    {% elseif type == 'password' %}
+                    <input type="password" name="{{ field }}" value="" class="layui-input" placeholder="{% if action == 'edit' %}留空不修改{% endif %}">
+
+                    {% elseif type == 'number' %}
+                    <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input">
+
+                    {% else %}
+                    <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button type="submit" class="layui-btn">保存</button>
+                    <button type="button" class="layui-btn layui-btn-primary" onclick="history.back()">返回</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+var resource = '{{ admin.getModel()|split('\\')|last }}';
+var isEdit = {{ action == 'edit' ? 'true' : 'false' }};
+var editId = {{ data.id ?? 0 }};
+
+layui.use(['form'], function() {
+    var form = layui.form;
+    form.render();
+
+    document.getElementById('crud-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        var params = new URLSearchParams();
+        for (var [k, v] of formData) {
+            if (v !== '') params.append(k, v);
+        }
+
+        var url = isEdit ? '/admin/' + resource + '/' + editId : '/admin/' + resource;
+        var method = isEdit ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params.toString()
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.code === 200) {
+                layui.layer.msg('保存成功', {icon: 1, time: 1000}, function() {
+                    location.href = '/admin/' + resource;
+                });
+            } else {
+                layui.layer.msg(res.msg || '保存失败', {icon: 2});
+            }
+        })
+        .catch(() => layui.layer.msg('网络错误', {icon: 2}));
+    });
+});
+</script>
+{% endblock %}

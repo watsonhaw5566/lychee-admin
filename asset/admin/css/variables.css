@@ -1,0 +1,35 @@
+:root {
+
+    /* 荔枝品牌主色 */
+    --global-primary-color: #D6336C;
+    --lychee-deep: #B8285A;
+    --lychee-mid: #E8878A;
+    --lychee-light: #F5C6C6;
+    --lychee-soft: #FDEEF0;
+
+    /* 叶子绿 */
+    --leaf: #7CB342;
+    --leaf-deep: #5A9A2E;
+
+    /* 果蒂棕 */
+    --stem: #C19A6B;
+
+    /* 背景与表面 */
+    --bg: #FAF7F4;
+    --surface: #FFFFFF;
+    --surface-2: #FDF5F2;
+
+    /* 文字 */
+    --text: #3D2B2E;
+    --text-muted: #9A8A8A;
+
+    /* 边框 */
+    --border: #F5E3E0;
+
+    /* 阴影 */
+    --shadow: 0 10px 40px rgba(214, 51, 108, 0.10);
+
+    /** 圆角度数 */
+    --global-border-radius: 4px;
+
+}

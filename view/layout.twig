@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }} - Lychee Admin</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="icon" type="image/png" href="{{ asset('lychee/admin/images/logo.png') }}">
+    <link rel="stylesheet" href="{{ asset('lychee/component/pear/css/pear.css') }}" />
+    <link rel="stylesheet" href="{{ asset('lychee/admin/css/variables.css') }}" />
+    <link rel="stylesheet" href="{{ asset('lychee/admin/css/reset.css') }}" />
+    <link rel="stylesheet" href="{{ asset('lychee/admin/css/admin.css') }}" />
+    <link rel="stylesheet" href="{{ asset('lychee/admin/css/admin.dark.css') }}" />
+    {% block head %}{% endblock %}
+</head>
+<body class="layui-layout-body pear-admin">
+    <div class="layui-layout layui-layout-admin">
+        {# 顶部 #}
+        <div class="layui-header">
+            <div class="layui-logo">
+                <img class="logo" src="{{ asset('lychee/admin/images/logo.png') }}">
+                <span class="title">Lychee Admin</span>
+            </div>
+            <ul class="layui-nav layui-layout-left">
+                <li class="collapse layui-nav-item"><a href="#" class="layui-icon layui-icon-shrink-right"></a></li>
+                <li class="refresh layui-nav-item"><a href="#" class="layui-icon layui-icon-refresh-1" loading="600"></a></li>
+            </ul>
+            <ul class="layui-nav layui-layout-right">
+                <li class="layui-nav-item user">
+                    <a class="layui-icon layui-icon-username" href="javascript:;"></a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="javascript:void(0);" class="logout">注销登录</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+
+        {# 侧边栏 #}
+        <div class="layui-side layui-bg-black">
+            <div class="layui-logo">
+                <img class="logo" src="{{ asset('lychee/admin/images/logo.png') }}">
+                <span class="title">Lychee Admin</span>
+            </div>
+            <div class="layui-side-scroll">
+                <div id="side">
+                    <ul class="layui-nav layui-nav-tree" lay-filter="side">
+                        <li class="layui-nav-item">
+                            <a href="/admin"><i class="layui-icon layui-icon-console"></i>&emsp;<cite>仪表盘</cite></a>
+                        </li>
+                        {% for group, items in menu %}
+                        <li class="layui-nav-item">
+                            <a href="javascript:;"><i class="layui-icon layui-icon-app"></i>&emsp;<cite>{{ group }}</cite></a>
+                            <dl class="layui-nav-child">
+                                {% for item in items %}
+                                <dd><a href="/admin/{{ item.model|split('\\')|last|lower }}"><i class="layui-icon {{ item.icon ?: 'layui-icon-face-smile' }}"></i>&emsp;<cite>{{ item.title }}</cite></a></dd>
+                                {% endfor %}
+                            </dl>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# 内容区 #}
+        <div class="layui-body">
+            <div id="content">
+                <div class="pear-container">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-footer layui-text">Copyright © 2026 Lychee Admin</div>
+
+        <div class="pear-cover"></div>
+        <div class="loader-wrapper">
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <div class="pear-collapsed-pe collapse">
+        <a href="#" class="layui-icon layui-icon-shrink-right"></a>
+    </div>
+
+    <script src="{{ asset('lychee/component/layui/layui.js') }}"></script>
+    <script src="{{ asset('lychee/component/pear/pear.js') }}"></script>
+    <script>
+        layui.use(['element', 'popup'], function() {
+            var element = layui.element;
+            var popup = layui.popup;
+            var $ = layui.jquery;
+
+            // 注销
+            $('.logout').on('click', function() {
+                fetch('/admin/logout', {method: 'POST'})
+                    .then(r => r.json())
+                    .then(function() {
+                        popup.success('注销成功', function() {
+                            location.href = '/admin/login';
+                        });
+                    });
+            });
+
+            // 刷新
+            $('.refresh').on('click', function() {
+                location.reload();
+            });
+
+            element.render();
+
+            // 隐藏加载遮罩（菜单由服务端渲染，无需 pearAdmin.render）
+            $(".loader-wrapper").fadeOut(200);
+        });
+    </script>
+    {% block script %}{% endblock %}
+</body>
+</html>

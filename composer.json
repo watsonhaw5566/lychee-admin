@@ -1,0 +1,24 @@
+{
+  "name": "watsonhaw/lychee-admin",
+  "description": "Lychee PHP admin plugin - out-of-the-box admin backend with dynamic resource CRUD",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.2",
+    "watsonhaw/lychee-php": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "LycheeAdmin\\": "src/"
+    }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "/Users/wangjue/PhpstormProjects/ant/lychee-php",
+      "options": {
+        "symlink": true
+      }
+    }
+  ]
+}

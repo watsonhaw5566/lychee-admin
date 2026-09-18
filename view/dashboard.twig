@@ -1,0 +1,50 @@
+{% extends "@admin/layout.twig" %}
+
+{% block content %}
+<div class="layui-row layui-col-space10">
+    <div class="layui-col-md4">
+        <div class="layui-card">
+            <div class="layui-card-header">管理员数量</div>
+            <div class="layui-card-body">
+                <div class="layui-row">
+                    <div class="layui-col-md8">
+                        <div class="deputy">
+                            <div class="deputy-label">管理员总数</div>
+                            <div class="deputy-count">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-col-md4">
+        <div class="layui-card">
+            <div class="layui-card-header">角色数量</div>
+            <div class="layui-card-body">
+                <div class="deputy">
+                    <div class="deputy-label">角色总数</div>
+                    <div class="deputy-count">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-col-md4">
+        <div class="layui-card">
+            <div class="layui-card-header">菜单数量</div>
+            <div class="layui-card-body">
+                <div class="deputy">
+                    <div class="deputy-label">菜单总数</div>
+                    <div class="deputy-count">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="layui-card" style="margin-top:15px;">
+    <div class="layui-card-body">
+        <h3>欢迎使用 Lychee Admin</h3>
+        <p>这是一个基于 lychee-php 插件系统的后台管理模块。</p>
+        <p>通过左侧菜单管理系统资源，或继承 AdminResource 注册自定义模型。</p>
+    </div>
+</div>
+{% endblock %}
