@@ -40,7 +40,7 @@ class AdminController extends Controller
     public function dashboard(): Response
     {
         return $this->render('@admin/layout', [
-            'menu'  => $this->adminManager->getMenu(),
+            'menu'  => $this->getMenu(),
             'title' => 'Lychee Admin',
         ]);
     }
@@ -55,7 +55,7 @@ class AdminController extends Controller
         ];
 
         return $this->render('@admin/dashboard', [
-            'menu'  => $this->adminManager->getMenu(),
+            'menu'  => $this->getMenu(),
             'title' => '仪表盘',
             'stats' => $stats,
         ]);
@@ -91,10 +91,18 @@ class AdminController extends Controller
             return $this->fail('账号已被禁用');
         }
 
-        $token = $this->saToken->login((int) $user->id, [
+        $isSuper = (int) $user->is_super === 1;
+
+        // 非超管用户：从角色加载权限码写入 token，供中间件校验
+        $extra = [
             'username' => $user->username,
-            'is_super' => (int) $user->is_super === 1,
-        ]);
+            'is_super' => $isSuper,
+        ];
+        if (!$isSuper) {
+            $extra['permissions'] = $this->getAdminPermissionCodes((int) $user->id);
+        }
+
+        $token = $this->saToken->login((int) $user->id, $extra);
 
         // 将 token 写入 cookie，供后续页面跳转自动携带
         $config    = $this->app->get('config');
@@ -203,6 +211,36 @@ class AdminController extends Controller
         return date('Y-m-d', $ts);
     }
 
+    /**
+     * 获取管理员拥有的所有权限码（通过角色关联）。
+     *
+     * @return array<int, string>
+     */
+    private function getAdminPermissionCodes(int $adminId): array
+    {
+        $admin = model\Admin::find($adminId);
+        if (!$admin || empty($admin->role_ids)) {
+            return [];
+        }
+
+        $roleIds = (array) $admin->role_ids;
+        $roles   = model\Role::whereIn('id', $roleIds)->select();
+
+        $permissionIds = [];
+        foreach ($roles as $role) {
+            if (!empty($role->permission_ids)) {
+                $permissionIds = array_merge($permissionIds, (array) $role->permission_ids);
+            }
+        }
+        $permissionIds = array_unique($permissionIds);
+
+        if (empty($permissionIds)) {
+            return [];
+        }
+
+        return model\Permission::whereIn('id', $permissionIds)->column('code');
+    }
+
     // ── 资源列表 ──────────────────────────────────────────────────
 
     #[Route('/admin/{resource}')]
@@ -214,7 +252,7 @@ class AdminController extends Controller
         }
 
         return $this->render('@admin/crud/list', [
-            'menu'  => $this->adminManager->getMenu(),
+            'menu'  => $this->getMenu(),
             'admin' => $admin,
             'title' => $admin->getTitle(),
         ]);
@@ -291,7 +329,7 @@ class AdminController extends Controller
         }
 
         return $this->render('@admin/crud/form', [
-            'menu'   => $this->adminManager->getMenu(),
+            'menu'   => $this->getMenu(),
             'admin'  => $admin,
             'title'  => '新增' . $admin->getTitle(),
             'action' => 'create',
@@ -314,6 +352,7 @@ class AdminController extends Controller
         try {
             $data = $this->request->post();
             $data = $admin->applyBeforeSave($data);
+            $data = $this->handleUploads($admin, $data);
 
             $model = $admin->newModel();
             $result = $model->create($data);
@@ -348,7 +387,7 @@ class AdminController extends Controller
         }
 
         return $this->render('@admin/crud/form', [
-            'menu'   => $this->adminManager->getMenu(),
+            'menu'   => $this->getMenu(),
             'admin'  => $admin,
             'title'  => '编辑' . $admin->getTitle(),
             'action' => 'edit',
@@ -378,6 +417,7 @@ class AdminController extends Controller
 
             $data = $this->request->post();
             $data = $admin->applyBeforeSave($data);
+            $data = $this->handleUploads($admin, $data, $info);
 
             $info->save($data);
 
@@ -390,6 +430,42 @@ class AdminController extends Controller
     }
 
     // ── 删除 ──────────────────────────────────────────────────────
+
+    #[Route('/admin/{resource}/batch', 'DELETE')]
+    public function batchDestroy(string $resource): JsonResponse
+    {
+        $admin = $this->resolveResource($resource);
+        if ($admin === null) {
+            return $this->fail("资源 [{$resource}] 未注册", 404);
+        }
+
+        if (!$admin->canDelete()) {
+            return $this->fail('无权删除', 403);
+        }
+
+        $ids = $this->request->post('ids', []);
+        if (!is_array($ids) || empty($ids)) {
+            return $this->fail('请选择要删除的数据', 400);
+        }
+
+        try {
+            $model = $admin->newModel();
+            $count = 0;
+            foreach ($ids as $id) {
+                $info = $model->find((int) $id);
+                if (!$info) {
+                    continue;
+                }
+                $admin->applyBeforeDelete($info);
+                $info->delete();
+                $count++;
+            }
+
+            return $this->success(['count' => $count], "成功删除 {$count} 条数据");
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
 
     #[Route('/admin/{resource}/{id}', 'DELETE')]
     public function destroy(string $resource, int $id): JsonResponse
@@ -446,6 +522,79 @@ class AdminController extends Controller
     }
 
     /**
+     * 获取按当前用户权限过滤后的菜单。
+     *
+     * 超管可见全部菜单；普通管理员仅可见拥有 list 权限的资源。
+     *
+     * @return array<string, array<int, array{title:string, icon:string, model:string}>>
+     */
+    protected function getMenu(): array
+    {
+        $menu  = $this->adminManager->getMenu();
+        $extra = $this->saToken->getExtra();
+
+        // 超管直接返回全部
+        if (!empty($extra['is_super'])) {
+            return $menu;
+        }
+
+        $permissions = (array) ($extra['permissions'] ?? []);
+        $filtered    = [];
+
+        foreach ($menu as $group => $items) {
+            $visible = [];
+            foreach ($items as $item) {
+                $short   = substr($item['model'], strrpos($item['model'], '\\') + 1);
+                $code    = 'system:' . strtolower($short) . ':list';
+                if (in_array($code, $permissions, true)) {
+                    $visible[] = $item;
+                }
+            }
+            if (!empty($visible)) {
+                $filtered[$group] = $visible;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * 处理 image/file 类型字段的文件上传。
+     *
+     * 若对应字段有上传文件则保存并写入 $data；
+     * 若无文件则不在 $data 中包含该字段（编辑时保留原值）。
+     *
+     * @param array<string, mixed> $data
+     * @param object|null          $existing 编辑时的已有模型实例
+     * @return array<string, mixed>
+     */
+    protected function handleUploads(AdminResource $admin, array $data, ?object $existing = null): array
+    {
+        foreach ($admin->getFormFields() as $field => $config) {
+            $type = is_array($config) ? ($config['type'] ?? 'text') : ($config ?? 'text');
+            if ($type !== 'image' && $type !== 'file') {
+                continue;
+            }
+
+            $file = $this->request->file($field);
+            if ($file instanceof \Lychee\http\UploadedFile && $file->isValid()) {
+                $ext      = $file->extension() ?: 'bin';
+                $dir      = 'uploads/admin/' . date('Y-m');
+                $filename = uniqid() . '.' . $ext;
+                $path     = storage()->putFileAs($dir, $file, $filename);
+                if ($path !== false) {
+                    $data[$field] = $path;
+                }
+            } elseif ($existing !== null) {
+                // 编辑且未上传新文件：移除该字段，保留原值
+                unset($data[$field]);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * 渲染 Twig 模板并返回 HTML 响应。
      */
     protected function render(string $template, array $data = []): Response
@@ -461,7 +610,7 @@ class AdminController extends Controller
     protected function errorPage(string $message): Response
     {
         $html = view('@admin/error', [
-            'menu'    => $this->adminManager->getMenu(),
+            'menu'    => $this->getMenu(),
             'title'   => '错误',
             'message' => $message,
         ]);
