@@ -1,9 +1,14 @@
 {% set resource = admin.getModel()|split('\\')|last|lower %}
+{% set hasRichtext = false %}
+{% for field, config in admin.getFormFields() %}
+    {% set fieldType = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
+    {% if fieldType == 'richtext' %}{% set hasRichtext = true %}{% endif %}
+{% endfor %}
 <div class="pear-container">
     <div class="layui-card">
         <div class="layui-card-header">{{ title }}</div>
         <div class="layui-card-body">
-            <form class="layui-form" lay-filter="crud-form-{{ resource }}" id="crud-form-{{ resource }}" style="max-width:600px;">
+            <form class="layui-form{% if hasRichtext %} form-with-richtext{% endif %}" lay-filter="crud-form-{{ resource }}" id="crud-form-{{ resource }}" style="{% if hasRichtext %}max-width:1000px;{% else %}max-width:600px;{% endif %}">
                 {% for field, config in admin.getFormFields() %}
                 {% set layVerify = admin.getFieldLayVerify(field) %}
                 <div class="layui-form-item">

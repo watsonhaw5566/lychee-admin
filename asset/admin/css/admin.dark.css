@@ -446,4 +446,18 @@
 /* 编辑器外层容器边框 */
 .pear-admin-dark .w-e-wrapper {
     border-color: var(--w-e-textarea-border-color) !important;
+    background-color: var(--w-e-textarea-bg-color);
+}
+
+/* 夜间模式下编辑器内容区域背景与文字颜色（覆盖 wangEditor 内部默认白底） */
+.pear-admin-dark .w-e-wrapper .w-e-text-container {
+    background-color: var(--w-e-textarea-bg-color);
+    color: var(--w-e-textarea-color);
+}
+
+/* 编辑区内部默认元素透明，透出暗色底色（用户自定义背景除外） */
+.pear-admin-dark .w-e-wrapper .w-e-text-container p,
+.pear-admin-dark .w-e-wrapper .w-e-text-container div,
+.pear-admin-dark .w-e-wrapper .w-e-text-container span {
+    background-color: transparent;
 }

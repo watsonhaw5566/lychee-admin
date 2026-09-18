@@ -660,18 +660,19 @@ body,
 
 /* wangEditor 富文本编辑器适配 */
 .w-e-wrapper {
-	border: 1px solid #ccc;
+	border: 1px solid #c0c4cc;
 	border-radius: 4px;
 	z-index: 100;
 	overflow: hidden;
+	box-sizing: border-box;
 }
 
 .w-e-wrapper .w-e-toolbar-container {
-	border-bottom: 1px solid #ccc;
+	border-bottom: 1px solid #c0c4cc;
 }
 
 .w-e-wrapper .w-e-text-container {
-	height: 400px;
+	height: 500px;
 	overflow-y: auto;
 }
 

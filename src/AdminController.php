@@ -164,7 +164,7 @@ class AdminController extends Controller
         return new JsonResponse([
             'errno' => 0,
             'data'  => [
-                'url'  => $path,
+                'url'  => storage()->url($path),
                 'alt'  => '',
                 'href' => '',
             ],
@@ -697,7 +697,7 @@ class AdminController extends Controller
                             $filename = uniqid() . '.' . $ext;
                             $path     = storage()->putFileAs($dir, $file, $filename);
                             if ($path !== false) {
-                                $paths[] = $path;
+                                $paths[] = storage()->url($path);
                             }
                         }
                     }
@@ -716,7 +716,7 @@ class AdminController extends Controller
                     $filename = uniqid() . '.' . $ext;
                     $path     = storage()->putFileAs($dir, $file, $filename);
                     if ($path !== false) {
-                        $data[$field] = $path;
+                        $data[$field] = storage()->url($path);
                     }
                 } elseif ($existing !== null) {
                     // 编辑且未上传新文件：移除该字段，保留原值
