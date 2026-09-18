@@ -17,235 +17,122 @@
             {% endif %}
 
             {# 操作栏 #}
-            <div style="margin-bottom:10px;">
-                {% if admin.canCreate() %}
-                <button class="layui-btn layui-btn-sm" id="create-btn-{{ resource }}">
-                    <i class="layui-icon layui-icon-add-1"></i> 新增
-                </button>
-                {% endif %}
-                {% if admin.canDelete() %}
-                <button class="layui-btn layui-btn-sm layui-btn-danger" id="batch-delete-btn-{{ resource }}">
-                    <i class="layui-icon layui-icon-delete"></i> 批量删除
-                </button>
-                {% endif %}
+            <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    {% if admin.canCreate() %}
+                    <button class="layui-btn layui-btn-sm" id="create-btn-{{ resource }}">
+                        <i class="layui-icon layui-icon-add-1"></i> 新增
+                    </button>
+                    {% endif %}
+                    {% if admin.canDelete() %}
+                    <button class="layui-btn layui-btn-sm layui-btn-danger" id="batch-delete-btn-{{ resource }}">
+                        <i class="layui-icon layui-icon-delete"></i> 批量删除
+                    </button>
+                    {% endif %}
+                </div>
+                <div>
+                    <button class="layui-btn layui-btn-sm layui-btn-primary" id="refresh-btn-{{ resource }}">
+                        <i class="layui-icon layui-icon-refresh"></i> 刷新
+                    </button>
+                </div>
             </div>
 
             {# 数据表格 #}
-            <div class="layui-form">
-            <table class="layui-table" lay-size="sm">
-                <thead>
-                    <tr>
-                        {% if admin.canDelete() %}
-                        <th style="width:40px;text-align:center;">
-                            <input type="checkbox" id="check-all-{{ resource }}" lay-skin="primary" lay-filter="checkAll-{{ resource }}">
-                        </th>
-                        {% endif %}
-                        {% for field in admin.getListFields() %}
-                        <th>{{ admin.getFieldLabel(field) }}</th>
-                        {% endfor %}
-                        <th style="width:160px;">操作</th>
-                    </tr>
-                </thead>
-                <tbody id="data-body-{{ resource }}"></tbody>
-            </table>
-            </div>
-
-            {# 分页 #}
-            <div id="pagination-{{ resource }}"></div>
+            <table id="table-{{ resource }}" lay-filter="table-{{ resource }}"></table>
         </div>
     </div>
 </div>
 
+{# 操作列模板 #}
+<script type="text/html" id="bar-{{ resource }}">
+    {% if admin.canUpdate() %}
+    <a class="layui-btn layui-btn-sm" lay-event="edit">编辑</a>
+    {% endif %}
+    {% if admin.canDelete() %}
+    <a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="del">删除</a>
+    {% endif %}
+</script>
+
 <script>
-layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
+layui.use(['jquery', 'layer', 'table', 'admin'], function () {
     var $ = layui.jquery;
     var layer = layui.layer;
-    var laypage = layui.laypage;
+    var table = layui.table;
     var admin = layui.admin;
-    var form = layui.form;
 
     var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
-    var canDelete = {{ admin.canDelete() ? 'true' : 'false' }};
-    var currentPage = 1;
-    var pageSize = 20;
 
-    function loadData() {
-        var loadIndex = layer.open({
-            type: 1,
-            shade: 0,
-            area: ['120px', '80px'],
-            closeBtn: 0,
-            title: false,
-            shadeClose: false,
-            skin: 'pear-loading-layer',
-            content: '<div class="ball-loader"><span></span><span></span><span></span><span></span></div>'
-        });
-        var params = new URLSearchParams();
-        params.append('page', currentPage);
-        params.append('limit', pageSize);
-
-        document.querySelectorAll('#data-body-' + resource + ' ~ .search-input, .pear-container .search-input').forEach(function (input) {
-            if (input.value) params.append(input.name, input.value);
-        });
-
-        fetch('/admin/' + resource + '/data?' + params.toString())
-            .then(function (r) { return r.json(); })
-            .then(function (res) {
-                layer.close(loadIndex);
-                var tbody = document.getElementById('data-body-' + resource);
-                if (!tbody) return;
-                tbody.innerHTML = '';
-                $('#check-all-' + resource).prop('checked', false);
-                if (res.data && res.data.length) {
-                    res.data.forEach(function (row) {
-                        var tr = '<tr>';
-                        if (canDelete) {
-                            tr += '<td style="text-align:center;"><input type="checkbox" class="row-check" value="' + row.id + '" lay-skin="primary" lay-filter="rowCheck-' + resource + '"></td>';
-                        }
-                        {% for field in admin.getListFields() %}
-                        {% set fieldConfig = admin.getFormFields()[field] ?? null %}
-                        {% set fieldType = fieldConfig is iterable ? (fieldConfig.type ?? 'text') : (fieldConfig ?? 'text') %}
-                        {% if fieldType == 'image' %}
-                        (function () {
-                            var v = row['{{ field }}'] || '';
-                            var urls = [];
-                            if (v) {
-                                try {
-                                    var parsed = JSON.parse(v);
-                                    urls = Array.isArray(parsed) ? parsed : [v];
-                                } catch (e) { urls = [v]; }
-                            }
-                            if (urls.length) {
-                                var imgs = urls.map(function (u) {
-                                    return u ? '<img src="' + u + '" style="width:40px;height:40px;object-fit:cover;border:1px solid #eee;border-radius:2px;margin-right:4px;cursor:pointer;" onclick="layer.photos({photos:{data:[{src:\'' + u + '\'}]}})">' : '';
-                                }).join('');
-                                tr += '<td>' + imgs + '</td>';
-                            } else {
-                                tr += '<td></td>';
-                            }
-                        })();
-                        {% else %}
-                        tr += '<td>' + (row['{{ field }}'] ?? '') + '</td>';
-                        {% endif %}
-                        {% endfor %}
-                        tr += '<td>';
-                        {% if admin.canUpdate() %}
-                        tr += '<button class="layui-btn layui-btn-xs" onclick="editItem_{{ resource }}(' + row.id + ')">编辑</button> ';
-                        {% endif %}
-                        {% if admin.canDelete() %}
-                        tr += '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem_{{ resource }}(' + row.id + ')">删除</button>';
-                        {% endif %}
-                        tr += '</td></tr>';
-                        tbody.innerHTML += tr;
-                    });
-                    form.render('checkbox');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="{{ admin.canDelete() ? admin.getListFields()|length + 2 : admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
-                }
-                renderPagination(res.count || 0);
-            })
-            .catch(function () {
-                layer.close(loadIndex);
-            });
-    }
-
-    window['editItem_{{ resource }}'] = function (id) {
-        admin.changePage({
-            id: resource + '-edit-' + id,
-            title: '编辑' + title,
-            url: '/admin/' + resource + '/' + id + '/edit',
-            type: '_component',
-            close: true
-        });
-    };
-
-    window['delItem_{{ resource }}'] = function (id) {
-        layer.confirm('确定删除？', { icon: 3, title: '提示' }, function (index) {
-            fetch('/admin/' + resource + '/' + id, { method: 'DELETE' })
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    layer.close(index);
-                    if (res.code === 200) {
-                        layer.msg('删除成功', { icon: 1 });
-                        admin.instances.tabPage.refresh(false);
-                    } else {
-                        layer.msg(res.msg || '删除失败', { icon: 2 });
-                    }
-                });
-        });
-    };
-
-    // 全选 / 取消全选
-    form.on('checkbox(checkAll-' + resource + ')', function (data) {
-        $('#data-body-' + resource + ' .row-check').prop('checked', data.elem.checked);
-        form.render('checkbox');
-    });
-
-    // 单个勾选变化时反向同步全选框
-    form.on('checkbox(rowCheck-' + resource + ')', function () {
-        syncCheckAll();
-    });
-
-    // 检查所有行 checkbox 是否全部选中，同步全选框状态
-    function syncCheckAll() {
-        var $rows = $('#data-body-' + resource + ' .row-check');
-        if ($rows.length === 0) {
-            $('#check-all-' + resource).prop('checked', false);
-        } else {
-            var allChecked = $rows.length === $rows.filter(':checked').length;
-            $('#check-all-' + resource).prop('checked', allChecked);
-        }
-        form.render('checkbox');
-    }
-
-    // 批量删除
-    document.getElementById('batch-delete-btn-' + resource)?.addEventListener('click', function () {
-        var ids = [];
-        document.querySelectorAll('#data-body-' + resource + ' .row-check:checked').forEach(function (cb) {
-            ids.push(cb.value);
-        });
-        if (ids.length === 0) {
-            layer.msg('请先选择要删除的数据', { icon: 0 });
-            return;
-        }
-        layer.confirm('确定删除选中的 ' + ids.length + ' 条数据？', { icon: 3, title: '提示' }, function (index) {
-            var params = new URLSearchParams();
-            ids.forEach(function (id) { params.append('ids[]', id); });
-            fetch('/admin/' + resource + '/batch', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    layer.close(index);
-                    if (res.code === 200) {
-                        layer.msg(res.msg || '删除成功', { icon: 1 });
-                        admin.instances.tabPage.refresh(false);
-                    } else {
-                        layer.msg(res.msg || '删除失败', { icon: 2 });
-                    }
-                });
-        });
-    });
-
-    function renderPagination(count) {
-        laypage.render({
-            elem: 'pagination-' + resource,
-            count: count,
-            curr: currentPage,
-            limit: pageSize,
-            layout: ['prev', 'page', 'next', 'count'],
-            jump: function (obj, first) {
-                if (!first) {
-                    currentPage = obj.curr;
-                    loadData();
-                }
+    var cols = [
+        {% if admin.canDelete() %}
+        {type: 'checkbox', fixed: 'left'},
+        {% endif %}
+        {% for field in admin.getListFields() %}
+        {% set fieldConfig = admin.getFormFields()[field] ?? null %}
+        {% set fieldType = fieldConfig is iterable ? (fieldConfig.type ?? 'text') : (fieldConfig ?? 'text') %}
+        {% if fieldType == 'image' %}
+        {field: '{{ field }}', title: '{{ admin.getFieldLabel(field) }}', templet: function (d) {
+            var v = d['{{ field }}'] || '';
+            var urls = [];
+            if (v) {
+                try {
+                    var parsed = JSON.parse(v);
+                    urls = Array.isArray(parsed) ? parsed : [v];
+                } catch (e) { urls = [v]; }
             }
-        });
-    }
+            if (urls.length) {
+                return urls.map(function (u) {
+                    return u ? '<img src="' + u + '" class="list-thumb" onclick="layer.photos({photos:{data:[{src:\'' + u + '\'}]}})">' : '';
+                }).join('');
+            }
+            return '';
+        }},
+        {% else %}
+        {field: '{{ field }}', title: '{{ admin.getFieldLabel(field) }}'},
+        {% endif %}
+        {% endfor %}
+        {title: '操作', toolbar: '#bar-{{ resource }}', width: 200, fixed: 'right'}
+    ];
 
+    table.render({
+        elem: '#table-' + resource,
+        url: '/admin/' + resource + '/data',
+        page: true,
+        limit: 20,
+        limits: [10, 20, 50, 100],
+        cols: [cols],
+        skin: 'line'
+    });
+
+    // 行工具事件
+    table.on('tool(table-' + resource + ')', function (obj) {
+        var data = obj.data;
+        if (obj.event === 'edit') {
+            admin.changePage({
+                id: resource + '-edit-' + data.id,
+                title: '编辑' + title,
+                url: '/admin/' + resource + '/' + data.id + '/edit',
+                type: '_component',
+                close: true
+            });
+        } else if (obj.event === 'del') {
+            layer.confirm('确定删除？', {icon: 3, title: '提示'}, function (index) {
+                fetch('/admin/' + resource + '/' + data.id, {method: 'DELETE'})
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        layer.close(index);
+                        if (res.code === 200) {
+                            layer.msg('删除成功', {icon: 1});
+                            table.reload('table-' + resource);
+                        } else {
+                            layer.msg(res.msg || '删除失败', {icon: 2});
+                        }
+                    });
+            });
+        }
+    });
+
+    // 新增
     document.getElementById('create-btn-' + resource)?.addEventListener('click', function () {
         admin.changePage({
             id: resource + '-create',
@@ -256,17 +143,53 @@ layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
         });
     });
 
-    document.getElementById('search-btn-' + resource)?.addEventListener('click', function () {
-        currentPage = 1;
-        loadData();
+    // 刷新
+    document.getElementById('refresh-btn-' + resource)?.addEventListener('click', function () {
+        table.reload('table-' + resource);
     });
 
+    // 搜索
+    document.getElementById('search-btn-' + resource)?.addEventListener('click', function () {
+        var where = {};
+        document.querySelectorAll('.pear-container .search-input').forEach(function (input) {
+            if (input.value) where[input.name] = input.value;
+        });
+        table.reload('table-' + resource, {where: where, page: {curr: 1}});
+    });
+
+    // 重置
     document.getElementById('reset-btn-' + resource)?.addEventListener('click', function () {
         document.querySelectorAll('.pear-container .search-input').forEach(function (i) { i.value = ''; });
-        currentPage = 1;
-        loadData();
+        table.reload('table-' + resource, {where: {}, page: {curr: 1}});
     });
 
-    loadData();
+    // 批量删除
+    document.getElementById('batch-delete-btn-' + resource)?.addEventListener('click', function () {
+        var checkStatus = table.checkStatus('table-' + resource);
+        var ids = checkStatus.data.map(function (row) { return row.id; });
+        if (ids.length === 0) {
+            layer.msg('请先选择要删除的数据', {icon: 0});
+            return;
+        }
+        layer.confirm('确定删除选中的 ' + ids.length + ' 条数据？', {icon: 3, title: '提示'}, function (index) {
+            var params = new URLSearchParams();
+            ids.forEach(function (id) { params.append('ids[]', id); });
+            fetch('/admin/' + resource + '/batch', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    layer.close(index);
+                    if (res.code === 200) {
+                        layer.msg(res.msg || '删除成功', {icon: 1});
+                        table.reload('table-' + resource);
+                    } else {
+                        layer.msg(res.msg || '删除失败', {icon: 2});
+                    }
+                });
+        });
+    });
 });
 </script>

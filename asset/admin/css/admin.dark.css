@@ -239,11 +239,11 @@
 
 .pear-admin-dark  .layui-table-hover,
 .pear-admin-dark  .layui-table-checked {
-    background-color: #2C2024;
+    background-color: color-mix(in srgb, var(--global-primary-color) 18%, #1a1014);
 }
 
 .pear-admin-dark .layui-table tr:hover {
-    background-color: #2C2024 !important;
+    background-color: color-mix(in srgb, var(--global-primary-color) 18%, #1a1014) !important;
 }
 
 .pear-admin-dark .layui-table td, 
