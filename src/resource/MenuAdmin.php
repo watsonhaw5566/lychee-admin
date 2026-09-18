@@ -14,7 +14,7 @@ class MenuAdmin extends AdminResource
 {
     protected string $model = Menu::class;
     protected string $title = '菜单';
-    protected string $icon  = 'layui-icon layui-icon-menu';
+    protected string $icon  = 'layui-icon layui-icon-menu-fill';
     protected string $group = '系统管理';
 
     protected array $listFields = ['id', 'parent_id', 'title', 'icon', 'path', 'sort', 'status'];
