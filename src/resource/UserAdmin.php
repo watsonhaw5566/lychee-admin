@@ -34,12 +34,12 @@ class UserAdmin extends AdminResource
     ];
 
     protected array $formFields = [
-        'username' => 'text',
-        'nickname' => 'text',
-        'password' => 'password',
-        'email'    => 'text',
+        'username' => ['type' => 'text', 'required' => true, 'rules' => 'length:2,20'],
+        'nickname' => ['type' => 'text', 'required' => true],
+        'password' => ['type' => 'password', 'required' => true, 'rules' => 'length:6,20'],
+        'email'    => ['type' => 'text', 'rules' => 'email'],
         'role_ids' => ['type' => 'select', 'multiple' => true, 'options' => []],
-        'status'   => ['type' => 'select', 'options' => [1 => '启用', 0 => '禁用']],
+        'status'   => ['type' => 'select', 'options' => [1 => '启用', 0 => '禁用'], 'required' => true],
     ];
 
     protected array $searchFields = ['username', 'nickname'];
@@ -62,9 +62,9 @@ class UserAdmin extends AdminResource
     /**
      * 编辑时密码为空则不更新。
      */
-    protected function beforeSave(array $data): array
+    protected function beforeSave(array $data, ?Model $existing = null): array
     {
-        if (isset($data['password']) && $data['password'] === '') {
+        if ($existing !== null && isset($data['password']) && $data['password'] === '') {
             unset($data['password']);
         }
 

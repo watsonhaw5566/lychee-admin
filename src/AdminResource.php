@@ -40,7 +40,15 @@ abstract class AdminResource
      *   'name' => 'text'                                    // 简写：字段名 => 类型
      *   'status' => ['type' => 'select', 'options' => [...]] // 完整配置
      *
-     * 支持的类型：text、textarea、number、password、select、radio、checkbox、switch、image、file、richtext、date
+     * 完整配置支持的键：
+     *   - type:       字段类型（text / textarea / number / password / select / radio / checkbox / switch / image / file / richtext / date）
+     *   - required:   是否必填（true / false），必填字段 label 会显示 *，并参与前后端校验
+     *   - rules:      think-validate 规则字符串，如 'email'、'length:6,20'、'number|between:1,120'
+     *   - options:    select / radio / checkbox 的可选项
+     *   - multiple:   select 是否多选
+     *
+     * 示例：
+     *   'email' => ['type' => 'text', 'required' => true, 'rules' => 'email']
      */
     protected array $formFields = [];
 
@@ -191,6 +199,87 @@ abstract class AdminResource
         return $labels[$field] ?? $field;
     }
 
+    // ── 表单校验（由表单字段配置驱动）──────────────────────────────
+
+    /**
+     * 判断字段是否必填。
+     *
+     * 在表单字段配置中设置 `'required' => true` 即可。
+     */
+    public function isFieldRequired(string $field): bool
+    {
+        $fields = $this->getFormFields();
+        $config = $fields[$field] ?? null;
+
+        if (is_array($config)) {
+            return !empty($config['required']);
+        }
+
+        return false;
+    }
+
+    /**
+     * 获取字段的 think-validate 规则字符串（含 require）。
+     *
+     * 由 `required` 与 `rules` 配置组合而成，例如：
+     *   required=true, rules='email'  → 'require|email'
+     *   required=true, rules=''       → 'require'
+     *   required=false, rules='email' → 'email'
+     */
+    public function getFieldRules(string $field): string
+    {
+        $fields = $this->getFormFields();
+        $config = $fields[$field] ?? null;
+
+        $rules = '';
+        if (is_array($config) && !empty($config['rules'])) {
+            $rules = (string) $config['rules'];
+        }
+
+        if ($this->isFieldRequired($field)) {
+            $rules = $rules !== '' ? 'require|' . $rules : 'require';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * 获取字段对应的 layui lay-verify 值。
+     *
+     * 将 think-validate 规则映射为 layui 内置校验类型：
+     *   require → required、email、url、number、date、identity
+     *
+     * switch / checkbox 类型不支持 layui 的 required 校验，返回空字符串（交由后端校验）。
+     */
+    public function getFieldLayVerify(string $field): string
+    {
+        $fields = $this->getFormFields();
+        $config = $fields[$field] ?? null;
+        $type   = is_array($config) ? ($config['type'] ?? 'text') : ($config ?? 'text');
+
+        if (in_array($type, ['switch', 'checkbox'], true)) {
+            return '';
+        }
+
+        $verify = [];
+        if ($this->isFieldRequired($field)) {
+            $verify[] = 'required';
+        }
+
+        $rules = $this->getFieldRules($field);
+        if ($rules !== '') {
+            $layuiMap = ['email', 'url', 'number', 'date', 'identity'];
+            foreach (explode('|', $rules) as $seg) {
+                $name = explode(':', $seg, 2)[0];
+                if (in_array($name, $layuiMap, true)) {
+                    $verify[] = $name;
+                }
+            }
+        }
+
+        return implode('|', array_unique($verify));
+    }
+
     // ── 钩子方法（子类可覆盖）────────────────────────────────────
 
     /**
@@ -205,9 +294,10 @@ abstract class AdminResource
      * 保存前处理数据（新增和编辑都会调用）。
      *
      * @param array<string, mixed> $data
+     * @param Model|null           $existing 编辑时的已有模型实例，新增时为 null
      * @return array<string, mixed>
      */
-    protected function beforeSave(array $data): array
+    protected function beforeSave(array $data, ?Model $existing = null): array
     {
         return $data;
     }
@@ -260,11 +350,12 @@ abstract class AdminResource
      * 执行 beforeSave 钩子。
      *
      * @param array<string, mixed> $data
+     * @param Model|null           $existing 编辑时的已有模型实例
      * @return array<string, mixed>
      */
-    public function applyBeforeSave(array $data): array
+    public function applyBeforeSave(array $data, ?Model $existing = null): array
     {
-        return $this->beforeSave($data);
+        return $this->beforeSave($data, $existing);
     }
 
     /**

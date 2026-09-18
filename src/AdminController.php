@@ -11,6 +11,7 @@ use Lychee\http\Response;
 use Lychee\routing\Route;
 use LycheeAdmin\AdminManager;
 use LycheeAdmin\AdminResource;
+use think\Validate;
 
 /**
  * 后台通用 CRUD 控制器。
@@ -354,6 +355,11 @@ class AdminController extends Controller
             $data = $admin->applyBeforeSave($data);
             $data = $this->handleUploads($admin, $data);
 
+            $error = $this->validateFormData($admin, $data, false);
+            if ($error !== null) {
+                return $this->fail($error);
+            }
+
             $model = $admin->newModel();
             $result = $model->create($data);
 
@@ -416,8 +422,13 @@ class AdminController extends Controller
             }
 
             $data = $this->request->post();
-            $data = $admin->applyBeforeSave($data);
+            $data = $admin->applyBeforeSave($data, $info);
             $data = $this->handleUploads($admin, $data, $info);
+
+            $error = $this->validateFormData($admin, $data, true);
+            if ($error !== null) {
+                return $this->fail($error);
+            }
 
             $info->save($data);
 
@@ -556,6 +567,60 @@ class AdminController extends Controller
         }
 
         return $filtered;
+    }
+
+    /**
+     * 根据资源表单字段配置校验数据。
+     *
+     * 校验规则由 AdminResource 的 $formFields 配置中的 required / rules 自动生成。
+     *
+     * 编辑时跳过未提交的字段（如留空的密码、未重新上传的文件），
+     * 因为这些字段在 beforeSave / handleUploads 中已被移除，保留原值。
+     *
+     * @return string|null 校验通过返回 null，否则返回拼接后的错误信息
+     */
+    protected function validateFormData(AdminResource $admin, array $data, bool $isEdit): ?string
+    {
+        $rules    = [];
+        $messages = [];
+
+        foreach ($admin->getFormFields() as $field => $_) {
+            $fieldRules = $admin->getFieldRules($field);
+            if ($fieldRules === '') {
+                continue;
+            }
+
+            // 编辑时跳过未提交的字段
+            if ($isEdit && !array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $rules[$field] = $fieldRules;
+
+            if ($admin->isFieldRequired($field)) {
+                $label = $admin->getFieldLabel($field);
+                $messages[$field . '.require'] = $label . '不能为空';
+            }
+        }
+
+        if (empty($rules)) {
+            return null;
+        }
+
+        $validate = new Validate();
+        $validate->rule($rules);
+        if (!empty($messages)) {
+            $validate->message($messages);
+        }
+        $validate->batch();
+
+        if (!$validate->check($data)) {
+            $errors = (array) $validate->getError(true);
+
+            return implode('；', $errors);
+        }
+
+        return null;
     }
 
     /**

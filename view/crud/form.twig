@@ -5,18 +5,22 @@
         <div class="layui-card-body">
             <form class="layui-form" lay-filter="crud-form-{{ resource }}" id="crud-form-{{ resource }}" style="max-width:600px;">
                 {% for field, config in admin.getFormFields() %}
+                {% set layVerify = admin.getFieldLayVerify(field) %}
                 <div class="layui-form-item">
-                    <label class="layui-form-label">{{ admin.getFieldLabel(field) }}</label>
+                    <label class="layui-form-label">
+                        {{ admin.getFieldLabel(field) }}
+                        {% if admin.isFieldRequired(field) %}<span style="color:#FF5722;margin-left:2px;">*</span>{% endif %}
+                    </label>
                     <div class="layui-input-block">
                         {% set type = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
                         {% set value = data[field] ?? '' %}
 
                         {% if type == 'textarea' %}
-                        <textarea name="{{ field }}" class="layui-textarea">{{ value }}</textarea>
+                        <textarea name="{{ field }}" class="layui-textarea"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>{{ value }}</textarea>
 
                         {% elseif type == 'select' %}
                         {% set isMultiple = config.multiple ?? false %}
-                        <select name="{{ field }}{% if isMultiple %}[]{% endif %}" {% if isMultiple %}multiple{% endif %}>
+                        <select name="{{ field }}{% if isMultiple %}[]{% endif %}" {% if isMultiple %}multiple{% endif %}{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
                             {% for val, label in config.options ?? {} %}
                             <option value="{{ val }}" {% if isMultiple %}{% if val in value %}selected{% endif %}{% else %}{% if value == val %}selected{% endif %}{% endif %}>{{ label }}</option>
                             {% endfor %}
@@ -24,7 +28,7 @@
 
                         {% elseif type == 'radio' %}
                         {% for val, label in config.options ?? {} %}
-                        <input type="radio" name="{{ field }}" value="{{ val }}" title="{{ label }}" {% if value == val %}checked{% endif %}>
+                        <input type="radio" name="{{ field }}" value="{{ val }}" title="{{ label }}" {% if value == val %}checked{% endif %}{% if layVerify and loop.first %} lay-verify="{{ layVerify }}"{% endif %}>
                         {% endfor %}
 
                         {% elseif type == 'checkbox' %}
@@ -36,27 +40,27 @@
                         <input type="checkbox" name="{{ field }}" lay-skin="switch" {% if value %}checked{% endif %}>
 
                         {% elseif type == 'password' %}
-                        <input type="password" name="{{ field }}" value="" class="layui-input" placeholder="{% if action == 'edit' %}留空不修改{% endif %}">
+                        <input type="password" name="{{ field }}" value="" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %} placeholder="{% if action == 'edit' %}留空不修改{% endif %}">
 
                         {% elseif type == 'number' %}
-                        <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input">
+                        <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
 
                         {% elseif type == 'date' %}
-                        <input type="date" name="{{ field }}" value="{{ value }}" class="layui-input">
+                        <input type="date" name="{{ field }}" value="{{ value }}" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
 
                         {% elseif type == 'image' %}
-                        <input type="file" name="{{ field }}" accept="image/*" class="layui-input" style="height:auto;">
+                        <input type="file" name="{{ field }}" accept="image/*" class="layui-input" style="height:auto;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
                         {% if value %}<img src="{{ value }}" alt="预览" style="max-width:120px;margin-top:8px;border:1px solid #eee;">{% endif %}
 
                         {% elseif type == 'file' %}
-                        <input type="file" name="{{ field }}" class="layui-input" style="height:auto;">
+                        <input type="file" name="{{ field }}" class="layui-input" style="height:auto;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
                         {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
 
                         {% elseif type == 'richtext' %}
-                        <textarea name="{{ field }}" class="layui-textarea" style="min-height:160px;">{{ value }}</textarea>
+                        <textarea name="{{ field }}" class="layui-textarea" style="min-height:160px;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>{{ value }}</textarea>
 
                         {% else %}
-                        <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
+                        <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
                         {% endif %}
                     </div>
                 </div>
@@ -64,7 +68,7 @@
 
                 <div class="layui-form-item">
                     <div class="layui-input-block">
-                        <button type="submit" class="layui-btn">保存</button>
+                        <button type="submit" class="layui-btn" lay-submit lay-filter="crud-submit-{{ resource }}">保存</button>
                         <button type="button" class="layui-btn layui-btn-primary" id="back-btn-{{ resource }}">返回</button>
                     </div>
                 </div>
@@ -112,10 +116,9 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
 
     document.getElementById('back-btn-' + resource).addEventListener('click', backToList);
 
-    document.getElementById('crud-form-' + resource).addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        var formEl = this;
+    // 使用 layui 的 submit 事件，自动触发 lay-verify 校验
+    form.on('submit(crud-submit-' + resource + ')', function (data) {
+        var formEl = data.form;
         var formData = new FormData(formEl);
         var hasFile = Array.from(formEl.querySelectorAll('input[type="file"]')).some(function (f) {
             return f.files && f.files.length > 0;
@@ -149,6 +152,8 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
             }
         })
         .catch(function () { layer.msg('网络错误', { icon: 2 }); });
+
+        return false; // 阻止表单默认提交
     });
 });
 </script>

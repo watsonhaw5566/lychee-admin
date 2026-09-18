@@ -26,8 +26,8 @@ class PermissionAdmin extends AdminResource
     ];
 
     protected array $formFields = [
-        'name'        => 'text',
-        'code'        => 'text',
+        'name'        => ['type' => 'text', 'required' => true],
+        'code'        => ['type' => 'text', 'required' => true],
         'description' => 'textarea',
     ];
 

@@ -30,11 +30,11 @@ class MenuAdmin extends AdminResource
 
     protected array $formFields = [
         'parent_id' => ['type' => 'select', 'options' => [0 => '顶级菜单']],
-        'title'     => 'text',
+        'title'     => ['type' => 'text', 'required' => true],
         'icon'      => 'text',
-        'path'      => 'text',
+        'path'      => ['type' => 'text', 'required' => true],
         'sort'      => ['type' => 'number'],
-        'status'    => ['type' => 'select', 'options' => [1 => '显示', 0 => '隐藏']],
+        'status'    => ['type' => 'select', 'options' => [1 => '显示', 0 => '隐藏'], 'required' => true],
     ];
 
     protected array $searchFields = ['title', 'path'];

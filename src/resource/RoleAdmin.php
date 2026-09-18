@@ -28,7 +28,7 @@ class RoleAdmin extends AdminResource
     ];
 
     protected array $formFields = [
-        'name'           => 'text',
+        'name'           => ['type' => 'text', 'required' => true],
         'description'    => 'textarea',
         'permission_ids' => ['type' => 'select', 'multiple' => true, 'options' => []],
     ];
