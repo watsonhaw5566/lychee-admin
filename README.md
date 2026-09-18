@@ -168,6 +168,8 @@ protected array $fieldLabels = [
 
 `text`、`textarea`、`number`、`password`、`select`、`radio`、`checkbox`、`switch`、`image`、`file`、`richtext`、`date`。
 
+其中 `richtext` 类型集成了 [wangEditor-next](https://wangeditor-next.github.io/docs/guide/getting-started) 富文本编辑器，支持图片上传（通过 `/admin/upload` 接口）、内容编辑、HTML 回填等功能。编辑器内容在提交时自动同步到表单字段。
+
 ### 表单校验
 
 表单字段支持 `required` 和 `rules` 两个配置项，同时驱动前端 layui 校验与后端 think-validate 校验。

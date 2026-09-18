@@ -8,6 +8,7 @@ use Lychee\auth\SaToken;
 use Lychee\http\Controller;
 use Lychee\http\JsonResponse;
 use Lychee\http\Response;
+use Lychee\http\UploadedFile;
 use Lychee\routing\Route;
 use LycheeAdmin\AdminManager;
 use LycheeAdmin\AdminResource;
@@ -127,6 +128,48 @@ class AdminController extends Controller
     }
 
     // ── 消息通知 ──────────────────────────────────────────────────
+
+    /**
+     * 富文本编辑器图片上传接口（供 wangEditor 使用）。
+     *
+     * 返回格式兼容 wangEditor 的 uploadImage：
+     *   成功：{ errno: 0, data: { url, alt, href } }
+     *   失败：{ errno: 1, message: '...' }
+     *
+     * 前端通过 MENU_CONF.uploadImage.customInsert 从 res.data 中取 url 插入。
+     */
+    #[Route('/admin/upload', 'POST')]
+    public function upload(): JsonResponse
+    {
+        $file = $this->request->file('file');
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            return new JsonResponse([
+                'errno'   => 1,
+                'message' => '上传失败：未收到有效文件',
+            ]);
+        }
+
+        $ext      = $file->extension() ?: 'png';
+        $dir      = 'uploads/admin/' . date('Y-m');
+        $filename = uniqid() . '.' . $ext;
+        $path     = storage()->putFileAs($dir, $file, $filename);
+
+        if ($path === false) {
+            return new JsonResponse([
+                'errno'   => 1,
+                'message' => '文件保存失败',
+            ]);
+        }
+
+        return new JsonResponse([
+            'errno' => 0,
+            'data'  => [
+                'url'  => $path,
+                'alt'  => '',
+                'href' => '',
+            ],
+        ]);
+    }
 
     /**
      * 消息通知列表（供 pear-admin messageCenter 使用）。

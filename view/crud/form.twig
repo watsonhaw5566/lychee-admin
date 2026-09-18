@@ -57,7 +57,11 @@
                         {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
 
                         {% elseif type == 'richtext' %}
-                        <textarea name="{{ field }}" class="layui-textarea" style="min-height:160px;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>{{ value }}</textarea>
+                        <div class="w-e-wrapper" data-richtext-field="{{ field }}">
+                            <div class="w-e-toolbar-container" id="w-e-toolbar-{{ resource }}-{{ field }}"></div>
+                            <div class="w-e-text-container" id="w-e-editor-{{ resource }}-{{ field }}"></div>
+                        </div>
+                        <textarea name="{{ field }}" id="w-e-textarea-{{ resource }}-{{ field }}" style="display:none;">{{ value }}</textarea>
 
                         {% else %}
                         <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
@@ -94,6 +98,58 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
         form.render(null, 'crud-form-' + resource);
     }, 50);
 
+    // 初始化富文本编辑器（wangEditor-next）
+    var richtextEditors = {};
+    document.querySelectorAll('.w-e-wrapper').forEach(function (wrapper) {
+        var field = wrapper.getAttribute('data-richtext-field');
+        var toolbarId = '#w-e-toolbar-' + resource + '-' + field;
+        var editorId = '#w-e-editor-' + resource + '-' + field;
+        var textarea = document.getElementById('w-e-textarea-' + resource + '-' + field);
+        var html = textarea ? textarea.value : '';
+
+        if (!window.wangEditor) {
+            return;
+        }
+
+        var createEditor = window.wangEditor.createEditor;
+        var createToolbar = window.wangEditor.createToolbar;
+
+        var editorConfig = {
+            placeholder: '请输入内容...',
+            MENU_CONF: {
+                uploadImage: {
+                    server: '/admin/upload',
+                    fieldName: 'file',
+                    withCredentials: true,
+                    customInsert: function (res, insertFn) {
+                        insertFn(res.data.url, res.data.alt || '', res.data.href || '');
+                    }
+                }
+            },
+            onChange: function (editor) {
+                if (textarea) {
+                    textarea.value = editor.getHtml();
+                }
+            }
+        };
+
+        var editor = createEditor({
+            selector: editorId,
+            html: html || '<p><br></p>',
+            config: editorConfig,
+            mode: 'default'
+        });
+
+        createToolbar({
+            editor: editor,
+            selector: toolbarId,
+            config: {},
+            mode: 'default'
+        });
+
+        richtextEditors[field] = editor;
+    });
+
     // 返回：关闭当前标签页，回到列表
     function backToList() {
         var tabFilter = $('.layui-tab[lay-filter="content"]');
@@ -119,6 +175,15 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
     // 使用 layui 的 submit 事件，自动触发 lay-verify 校验
     form.on('submit(crud-submit-' + resource + ')', function (data) {
         var formEl = data.form;
+
+        // 提交前同步富文本编辑器内容到隐藏 textarea
+        Object.keys(richtextEditors).forEach(function (field) {
+            var textarea = document.getElementById('w-e-textarea-' + resource + '-' + field);
+            if (textarea) {
+                textarea.value = richtextEditors[field].getHtml();
+            }
+        });
+
         var formData = new FormData(formEl);
         var hasFile = Array.from(formEl.querySelectorAll('input[type="file"]')).some(function (f) {
             return f.files && f.files.length > 0;

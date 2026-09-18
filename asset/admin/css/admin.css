@@ -657,3 +657,25 @@ body,
 .pear-loading-layer .ball-loader > span {
 	background-color: var(--global-primary-color) !important;
 }
+
+/* wangEditor 富文本编辑器适配 */
+.w-e-wrapper {
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	z-index: 100;
+	overflow: hidden;
+}
+
+.w-e-wrapper .w-e-toolbar-container {
+	border-bottom: 1px solid #ccc;
+}
+
+.w-e-wrapper .w-e-text-container {
+	height: 400px;
+	overflow-y: auto;
+}
+
+/* 全屏模式下编辑器撑满 */
+.w-e-full-screen .w-e-text-container {
+	height: calc(100vh - 120px) !important;
+}

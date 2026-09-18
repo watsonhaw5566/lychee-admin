@@ -422,3 +422,28 @@
 .pear-admin-dark .user-desc {
     border-top: 1px solid #3D2B2E;
 }
+
+/** wangEditor 富文本编辑器暗色适配：覆盖官方 CSS 变量，统一驱动所有内部组件 */
+.pear-admin-dark {
+    --w-e-textarea-bg-color: #241B1E;
+    --w-e-textarea-color: #F5E8EA;
+    --w-e-textarea-border-color: #3D2B2E;
+    --w-e-textarea-slight-border-color: #3D2B2E;
+    --w-e-textarea-slight-color: #9A8A8A;
+    --w-e-textarea-slight-bg-color: #2C2024;
+    --w-e-textarea-selected-border-color: var(--global-primary-color);
+    --w-e-textarea-handler-bg-color: var(--global-primary-color);
+    --w-e-toolbar-color: rgba(245, 232, 234, .8);
+    --w-e-toolbar-bg-color: #241B1E;
+    --w-e-toolbar-active-color: #ffffff;
+    --w-e-toolbar-active-bg-color: #2C2024;
+    --w-e-toolbar-disabled-color: #6B5A5A;
+    --w-e-toolbar-border-color: #3D2B2E;
+    --w-e-modal-button-bg-color: #2C2024;
+    --w-e-modal-button-border-color: #3D2B2E;
+}
+
+/* 编辑器外层容器边框 */
+.pear-admin-dark .w-e-wrapper {
+    border-color: var(--w-e-textarea-border-color) !important;
+}
