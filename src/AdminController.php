@@ -48,9 +48,16 @@ class AdminController extends Controller
     #[Route('/admin/dashboard')]
     public function dashboardContent(): Response
     {
+        $stats = [
+            'admin' => model\Admin::count(),
+            'role'  => model\Role::count(),
+            'menu'  => model\Menu::count(),
+        ];
+
         return $this->render('@admin/dashboard', [
             'menu'  => $this->adminManager->getMenu(),
             'title' => '仪表盘',
+            'stats' => $stats,
         ]);
     }
 
