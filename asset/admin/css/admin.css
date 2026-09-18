@@ -247,8 +247,15 @@ body,
 	left: 60px;
 }
 
-.pear-mini .layui-nav-tree .layui-nav-item span {
+.pear-mini .layui-nav-tree .layui-nav-item span,
+.pear-mini .layui-nav-tree .layui-nav-item cite,
+.pear-mini .layui-nav-tree .layui-nav-item .layui-nav-more {
 	display: none;
+}
+
+.pear-mini .layui-nav-tree .layui-nav-item > a {
+	text-align: center;
+	padding: 0;
 }
 
 .pear-mini .layui-side-scroll {

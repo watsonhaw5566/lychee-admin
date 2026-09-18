@@ -7,7 +7,7 @@ use Lychee\migration\Migration;
 /**
  * 创建 lychee-admin 后台数据表。
  *
- * 包含：管理员、角色、菜单、权限四张表。
+ * 包含：管理员、角色、菜单、权限、消息通知五张表。
  */
 class CreateAdminTablesMigration extends Migration
 {
@@ -62,6 +62,19 @@ class CreateAdminTablesMigration extends Migration
             ->addIndex('code', ['type' => 'UNIQUE', 'name' => 'uk_code'])
             ->setComment('后台权限表')
             ->create();
+
+        // 消息通知表
+        $this->table('admin_notification')
+            ->addColumn('admin_id', 'integer', ['comment' => '接收通知的管理员ID'])
+            ->addColumn('type', 'string', ['length' => 30, 'default' => 'notice', 'comment' => '通知类型：notice通知 todo待办 system系统'])
+            ->addColumn('title', 'string', ['length' => 100, 'comment' => '通知标题'])
+            ->addColumn('content', 'text', ['comment' => '通知内容'])
+            ->addColumn('is_read', 'boolean', ['default' => 0, 'comment' => '是否已读：0未读 1已读'])
+            ->addTimestamps()
+            ->addIndex('admin_id', ['name' => 'idx_admin_id'])
+            ->addIndex('is_read', ['name' => 'idx_is_read'])
+            ->setComment('后台消息通知表')
+            ->create();
     }
 
     public function down(): void
@@ -70,5 +83,6 @@ class CreateAdminTablesMigration extends Migration
         $this->table('admin_role')->drop();
         $this->table('admin_menu')->drop();
         $this->table('admin_permission')->drop();
+        $this->table('admin_notification')->drop();
     }
 }

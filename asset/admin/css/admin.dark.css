@@ -1,3 +1,8 @@
+/** 暗色模式下覆盖全局边框色，避免亮色模式的浅粉边框在深色背景上过亮 */
+.pear-admin-dark {
+    --border: #3D2B2E;
+}
+
 /** loader */
 .pear-admin-dark .loader-wrapper,
 .pear-admin-dark .loader-wrapper .loader {
@@ -26,7 +31,8 @@
 }
 
 .pear-admin-dark .layui-header {
-    border: 1px solid var(--border) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
 }
 
 .pear-admin-dark .layui-header .layui-nav * {
@@ -259,18 +265,46 @@
     background-color: transparent; 
 }
 
+.pear-admin-dark .layui-laypage a,
+.pear-admin-dark .layui-laypage button,
 .pear-admin-dark .layui-laypage select,
-.pear-admin-dark .layui-laypage button {
+.pear-admin-dark .layui-laypage input,
+.pear-admin-dark .layui-laypage span {
+    background-color: #241B1E !important;
     border-color: var(--border) !important;
     color: #F5E8EA !important;
-    background-color: transparent; 
 }
 
-.pear-admin-dark .layui-laypage a,
+.pear-admin-dark .layui-laypage a:hover,
+.pear-admin-dark .layui-laypage button:hover {
+    background-color: #2C2024 !important;
+    color: #F5E8EA !important;
+}
+
+/* 当前页：用主题色填充，覆盖整个 span（含边框区域） */
+.pear-admin-dark .layui-laypage .layui-laypage-curr {
+    background-color: var(--global-primary-color) !important;
+    border-color: var(--global-primary-color) !important;
+}
+
+.pear-admin-dark .layui-laypage .layui-laypage-curr .layui-laypage-em {
+    background-color: var(--global-primary-color) !important;
+    left: -1px !important;
+    top: -1px !important;
+    padding: 1px !important;
+}
+
+.pear-admin-dark .layui-laypage .layui-laypage-curr em {
+    color: #fff !important;
+}
+
 .pear-admin-dark .layui-laypage-spr,
-.pear-admin-dark .layui-laypage-skip,
-.pear-admin-dark .layui-laypage-count {
-    color: #F5E8EA;
+.pear-admin-dark .layui-laypage-count,
+.pear-admin-dark .layui-laypage-limits,
+.pear-admin-dark .layui-laypage-skip {
+    background-color: transparent !important;
+    border: none !important;
+    color: #F5E8EA !important;
 }
 
 .pear-admin-dark .layui-laypage-limits option {

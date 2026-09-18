@@ -1,140 +1,158 @@
-{% extends "@admin/layout.twig" %}
-
-{% block content %}
-<div class="layui-card">
-    <div class="layui-card-header">{{ admin.getTitle() }}</div>
-    <div class="layui-card-body">
-        {# 搜索栏 #}
-        {% if admin.getSearchFields() is not empty %}
-        <div class="layui-form" style="margin-bottom:15px;">
-            <div class="layui-inline">
-                {% for field in admin.getSearchFields() %}
-                <input type="text" name="{{ field }}" placeholder="{{ field }}" class="layui-input search-input" style="width:150px;display:inline-block;margin-right:10px;">
-                {% endfor %}
-                <button class="layui-btn" id="search-btn">搜索</button>
-                <button class="layui-btn layui-btn-primary" id="reset-btn">重置</button>
-            </div>
-        </div>
-        {% endif %}
-
-        {# 操作栏 #}
-        <div style="margin-bottom:10px;">
-            {% if admin.canCreate() %}
-            <a href="/admin/{{ admin.getModel()|split('\\')|last }}/create" class="layui-btn layui-btn-sm">
-                <i class="layui-icon layui-icon-add-1"></i> 新增
-            </a>
-            {% endif %}
-        </div>
-
-        {# 数据表格 #}
-        <table class="layui-table" lay-size="sm">
-            <thead>
-                <tr>
-                    {% for field in admin.getListFields() %}
-                    <th>{{ field }}</th>
+<div class="pear-container">
+    <div class="layui-card">
+        <div class="layui-card-header">{{ admin.getTitle() }}</div>
+        <div class="layui-card-body">
+            {# 搜索栏 #}
+            {% if admin.getSearchFields() is not empty %}
+            <div class="layui-form" style="margin-bottom:15px;">
+                <div class="layui-inline">
+                    {% for field in admin.getSearchFields() %}
+                    <input type="text" name="{{ field }}" placeholder="{{ field }}" class="layui-input search-input" style="width:150px;display:inline-block;margin-right:10px;">
                     {% endfor %}
-                    <th style="width:160px;">操作</th>
-                </tr>
-            </thead>
-            <tbody id="data-body"></tbody>
-        </table>
+                    <button class="layui-btn" id="search-btn">搜索</button>
+                    <button class="layui-btn layui-btn-primary" id="reset-btn">重置</button>
+                </div>
+            </div>
+            {% endif %}
 
-        {# 分页 #}
-        <div id="pagination"></div>
+            {# 操作栏 #}
+            <div style="margin-bottom:10px;">
+                {% if admin.canCreate() %}
+                <button class="layui-btn layui-btn-sm" id="create-btn">
+                    <i class="layui-icon layui-icon-add-1"></i> 新增
+                </button>
+                {% endif %}
+            </div>
+
+            {# 数据表格 #}
+            <table class="layui-table" lay-size="sm">
+                <thead>
+                    <tr>
+                        {% for field in admin.getListFields() %}
+                        <th>{{ field }}</th>
+                        {% endfor %}
+                        <th style="width:160px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body"></tbody>
+            </table>
+
+            {# 分页 #}
+            <div id="pagination"></div>
+        </div>
     </div>
 </div>
-{% endblock %}
 
-{% block script %}
 <script>
-var resource = '{{ admin.getModel()|split('\\')|last }}';
-var currentPage = 1;
-var pageSize = 20;
+layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var laypage = layui.laypage;
+    var admin = layui.admin;
 
-function loadData() {
-    var params = new URLSearchParams();
-    params.append('page', currentPage);
-    params.append('limit', pageSize);
+    var resource = '{{ admin.getModel()|split('\\')|last|lower }}';
+    var title = '{{ admin.getTitle() }}';
+    var currentPage = 1;
+    var pageSize = 20;
 
-    document.querySelectorAll('.search-input').forEach(function(input) {
-        if (input.value) params.append(input.name, input.value);
-    });
+    function loadData() {
+        var params = new URLSearchParams();
+        params.append('page', currentPage);
+        params.append('limit', pageSize);
 
-    fetch('/admin/' + resource + '/data?' + params.toString())
-        .then(r => r.json())
-        .then(res => {
-            var tbody = document.getElementById('data-body');
-            tbody.innerHTML = '';
-            if (res.data && res.data.length) {
-                res.data.forEach(function(row) {
-                    var tr = '<tr>';
-                    {% for field in admin.getListFields() %}
-                    tr += '<td>' + (row['{{ field }}'] ?? '') + '</td>';
-                    {% endfor %}
-                    tr += '<td>';
-                    {% if admin.canUpdate() %}
-                    tr += '<a href="/admin/' + resource + '/' + row.id + '/edit" class="layui-btn layui-btn-xs">编辑</a> ';
-                    {% endif %}
-                    {% if admin.canDelete() %}
-                    tr += '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem(' + row.id + ')">删除</button>';
-                    {% endif %}
-                    tr += '</td></tr>';
-                    tbody.innerHTML += tr;
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="{{ admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
-            }
-            renderPagination(res.count || 0);
+        document.querySelectorAll('.search-input').forEach(function (input) {
+            if (input.value) params.append(input.name, input.value);
         });
-}
 
-function delItem(id) {
-    layui.use(['layer'], function() {
-        var layer = layui.layer;
-        layer.confirm('确定删除？', {icon: 3, title: '提示'}, function(index) {
-            fetch('/admin/' + resource + '/' + id, {method: 'DELETE'})
-                .then(r => r.json())
-                .then(res => {
+        fetch('/admin/' + resource + '/data?' + params.toString())
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var tbody = document.getElementById('data-body');
+                tbody.innerHTML = '';
+                if (res.data && res.data.length) {
+                    res.data.forEach(function (row) {
+                        var tr = '<tr>';
+                        {% for field in admin.getListFields() %}
+                        tr += '<td>' + (row['{{ field }}'] ?? '') + '</td>';
+                        {% endfor %}
+                        tr += '<td>';
+                        {% if admin.canUpdate() %}
+                        tr += '<button class="layui-btn layui-btn-xs" onclick="editItem(' + row.id + ')">编辑</button> ';
+                        {% endif %}
+                        {% if admin.canDelete() %}
+                        tr += '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem(' + row.id + ')">删除</button>';
+                        {% endif %}
+                        tr += '</td></tr>';
+                        tbody.innerHTML += tr;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="{{ admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
+                }
+                renderPagination(res.count || 0);
+            });
+    }
+
+    window.editItem = function (id) {
+        admin.changePage({
+            id: resource + '-edit-' + id,
+            title: '编辑' + title,
+            url: '/admin/' + resource + '/' + id + '/edit',
+            type: '_component'
+        });
+    };
+
+    window.delItem = function (id) {
+        layer.confirm('确定删除？', { icon: 3, title: '提示' }, function (index) {
+            fetch('/admin/' + resource + '/' + id, { method: 'DELETE' })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
                     layer.close(index);
                     if (res.code === 200) {
-                        layer.msg('删除成功', {icon: 1});
-                        loadData();
+                        layer.msg('删除成功', { icon: 1 });
+                        admin.instances.tabPage.refresh(false);
                     } else {
-                        layer.msg(res.msg || '删除失败', {icon: 2});
+                        layer.msg(res.msg || '删除失败', { icon: 2 });
                     }
                 });
         });
-    });
-}
+    };
 
-function renderPagination(count) {
-    layui.use(['laypage'], function() {
-        layui.laypage.render({
+    function renderPagination(count) {
+        laypage.render({
             elem: 'pagination',
             count: count,
             curr: currentPage,
             limit: pageSize,
             layout: ['prev', 'page', 'next', 'count'],
-            jump: function(obj, first) {
+            jump: function (obj, first) {
                 if (!first) {
                     currentPage = obj.curr;
                     loadData();
                 }
             }
         });
+    }
+
+    document.getElementById('create-btn')?.addEventListener('click', function () {
+        admin.changePage({
+            id: resource + '-create',
+            title: '新增' + title,
+            url: '/admin/' + resource + '/create',
+            type: '_component'
+        });
     });
-}
 
-document.getElementById('search-btn')?.addEventListener('click', function() {
-    currentPage = 1;
+    document.getElementById('search-btn')?.addEventListener('click', function () {
+        currentPage = 1;
+        loadData();
+    });
+
+    document.getElementById('reset-btn')?.addEventListener('click', function () {
+        document.querySelectorAll('.search-input').forEach(function (i) { i.value = ''; });
+        currentPage = 1;
+        loadData();
+    });
+
     loadData();
 });
-document.getElementById('reset-btn')?.addEventListener('click', function() {
-    document.querySelectorAll('.search-input').forEach(i => i.value = '');
-    currentPage = 1;
-    loadData();
-});
-
-loadData();
 </script>
-{% endblock %}

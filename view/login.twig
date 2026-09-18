@@ -25,7 +25,7 @@
                                 <span>Lychee Admin</span>
                             </div>
                             <div class="top-desc">
-                                以 超 乎 想 象 的 速 度 构 建 内 部 工 具
+                                开 箱 即 用 的 管理后台
                             </div>
                             <div style="margin-top: 30px;">
                                 <div class="layui-form-item">
@@ -61,32 +61,26 @@
     <script>
         layui.use(['form', 'button', 'popup'], function () {
             var form = layui.form;
-            var button = layui.button;
             var popup = layui.popup;
-            var $ = layui.jquery;
 
             form.on('submit(login)', function (data) {
-                $.ajax({
-                    url: '/admin/login',
-                    type: 'POST',
-                    data: data.field,
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.code === 200) {
-                            if (res.data && res.data.token) {
-                                localStorage.setItem('admin_token', res.data.token);
-                            }
-                            popup.success('登录成功', function() {
-                                location.href = '/admin';
-                            });
-                        } else {
-                            popup.failure(res.msg || '登录失败');
-                        }
-                    },
-                    error: function() {
-                        popup.failure('网络错误');
+                fetch('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(data.field).toString()
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.code === 200) {
+                        popup.success('登录成功', function () {
+                            location.href = '/admin';
+                        });
+                    } else {
+                        popup.failure(res.msg || '登录失败');
                     }
-                });
+                })
+                .catch(function () { popup.failure('网络错误'); });
+
                 return false;
             });
         });

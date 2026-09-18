@@ -1,80 +1,101 @@
-{% extends "@admin/layout.twig" %}
+<div class="pear-container">
+    <div class="layui-card">
+        <div class="layui-card-header">{{ title }}</div>
+        <div class="layui-card-body">
+            <form class="layui-form" id="crud-form" style="max-width:600px;">
+                {% for field, config in admin.getFormFields() %}
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{{ field }}</label>
+                    <div class="layui-input-block">
+                        {% set type = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
+                        {% set value = data[field] ?? '' %}
 
-{% block content %}
-<div class="layui-card">
-    <div class="layui-card-header">{{ title }}</div>
-    <div class="layui-card-body">
-        <form class="layui-form" id="crud-form" style="max-width:600px;">
-            {% for field, config in admin.getFormFields() %}
-            <div class="layui-form-item">
-                <label class="layui-form-label">{{ field }}</label>
-                <div class="layui-input-block">
-                    {% set type = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
-                    {% set value = data[field] ?? '' %}
+                        {% if type == 'textarea' %}
+                        <textarea name="{{ field }}" class="layui-textarea">{{ value }}</textarea>
 
-                    {% if type == 'textarea' %}
-                    <textarea name="{{ field }}" class="layui-textarea">{{ value }}</textarea>
+                        {% elseif type == 'select' %}
+                        <select name="{{ field }}">
+                            {% for val, label in config.options ?? {} %}
+                            <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
 
-                    {% elseif type == 'select' %}
-                    <select name="{{ field }}">
+                        {% elseif type == 'radio' %}
                         {% for val, label in config.options ?? {} %}
-                        <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ label }}</option>
+                        <input type="radio" name="{{ field }}" value="{{ val }}" title="{{ label }}" {% if value == val %}checked{% endif %}>
                         {% endfor %}
-                    </select>
 
-                    {% elseif type == 'radio' %}
-                    {% for val, label in config.options ?? {} %}
-                    <input type="radio" name="{{ field }}" value="{{ val }}" title="{{ label }}" {% if value == val %}checked{% endif %}>
-                    {% endfor %}
+                        {% elseif type == 'checkbox' %}
+                        {% for val, label in config.options ?? {} %}
+                        <input type="checkbox" name="{{ field }}[]" value="{{ val }}" title="{{ label }}" lay-skin="primary">
+                        {% endfor %}
 
-                    {% elseif type == 'checkbox' %}
-                    {% for val, label in config.options ?? {} %}
-                    <input type="checkbox" name="{{ field }}[]" value="{{ val }}" title="{{ label }}" lay-skin="primary">
-                    {% endfor %}
+                        {% elseif type == 'switch' %}
+                        <input type="checkbox" name="{{ field }}" lay-skin="switch" {% if value %}checked{% endif %}>
 
-                    {% elseif type == 'switch' %}
-                    <input type="checkbox" name="{{ field }}" lay-skin="switch" {% if value %}checked{% endif %}>
+                        {% elseif type == 'password' %}
+                        <input type="password" name="{{ field }}" value="" class="layui-input" placeholder="{% if action == 'edit' %}留空不修改{% endif %}">
 
-                    {% elseif type == 'password' %}
-                    <input type="password" name="{{ field }}" value="" class="layui-input" placeholder="{% if action == 'edit' %}留空不修改{% endif %}">
+                        {% elseif type == 'number' %}
+                        <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input">
 
-                    {% elseif type == 'number' %}
-                    <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input">
-
-                    {% else %}
-                    <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
-                    {% endif %}
+                        {% else %}
+                        <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
 
-            <div class="layui-form-item">
-                <div class="layui-input-block">
-                    <button type="submit" class="layui-btn">保存</button>
-                    <button type="button" class="layui-btn layui-btn-primary" onclick="history.back()">返回</button>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button type="submit" class="layui-btn">保存</button>
+                        <button type="button" class="layui-btn layui-btn-primary" id="back-btn">返回</button>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
-{% endblock %}
 
-{% block script %}
 <script>
-var resource = '{{ admin.getModel()|split('\\')|last }}';
-var isEdit = {{ action == 'edit' ? 'true' : 'false' }};
-var editId = {{ data.id ?? 0 }};
-
-layui.use(['form'], function() {
+layui.use(['jquery', 'form', 'layer', 'admin'], function () {
+    var $ = layui.jquery;
     var form = layui.form;
+    var layer = layui.layer;
+    var admin = layui.admin;
+
+    var resource = '{{ admin.getModel()|split('\\')|last|lower }}';
+    var title = '{{ admin.getTitle() }}';
+    var isEdit = {{ action == 'edit' ? 'true' : 'false' }};
+    var editId = {{ data.id ?? 0 }};
+
     form.render();
 
-    document.getElementById('crud-form').addEventListener('submit', function(e) {
+    // 返回：关闭当前标签页，回到列表
+    function backToList() {
+        var currentTabId = $('.layui-tab[lay-filter="content"] .layui-tab-title .layui-this').attr('lay-id');
+        admin.changePage({
+            id: resource,
+            title: title,
+            url: '/admin/' + resource,
+            type: '_component'
+        });
+        setTimeout(function () {
+            admin.instances.tabPage.refresh(false);
+            if (currentTabId) {
+                admin.instances.tabPage.removeTab(currentTabId);
+            }
+        }, 200);
+    }
+
+    document.getElementById('back-btn').addEventListener('click', backToList);
+
+    document.getElementById('crud-form').addEventListener('submit', function (e) {
         e.preventDefault();
         var formData = new FormData(this);
         var params = new URLSearchParams();
-        for (var [k, v] of formData) {
-            if (v !== '') params.append(k, v);
+        for (var pair of formData.entries()) {
+            if (pair[1] !== '') params.append(pair[0], pair[1]);
         }
 
         var url = isEdit ? '/admin/' + resource + '/' + editId : '/admin/' + resource;
@@ -82,21 +103,20 @@ layui.use(['form'], function() {
 
         fetch(url, {
             method: method,
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params.toString()
         })
-        .then(r => r.json())
-        .then(res => {
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
             if (res.code === 200) {
-                layui.layer.msg('保存成功', {icon: 1, time: 1000}, function() {
-                    location.href = '/admin/' + resource;
+                layer.msg('保存成功', { icon: 1, time: 800 }, function () {
+                    backToList();
                 });
             } else {
-                layui.layer.msg(res.msg || '保存失败', {icon: 2});
+                layer.msg(res.msg || '保存失败', { icon: 2 });
             }
         })
-        .catch(() => layui.layer.msg('网络错误', {icon: 2}));
+        .catch(function () { layer.msg('网络错误', { icon: 2 }); });
     });
 });
 </script>
-{% endblock %}

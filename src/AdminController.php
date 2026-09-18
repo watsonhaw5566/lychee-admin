@@ -39,6 +39,15 @@ class AdminController extends Controller
     #[Route('/admin')]
     public function dashboard(): Response
     {
+        return $this->render('@admin/layout', [
+            'menu'  => $this->adminManager->getMenu(),
+            'title' => 'Lychee Admin',
+        ]);
+    }
+
+    #[Route('/admin/dashboard')]
+    public function dashboardContent(): Response
+    {
         return $this->render('@admin/dashboard', [
             'menu'  => $this->adminManager->getMenu(),
             'title' => '仪表盘',
@@ -99,6 +108,92 @@ class AdminController extends Controller
 
         return $this->success(null, '退出成功')
             ->withoutCookie($cookieName);
+    }
+
+    // ── 消息通知 ──────────────────────────────────────────────────
+
+    /**
+     * 消息通知列表（供 pear-admin messageCenter 使用）。
+     *
+     * 按通知类型分组为标签页：通知 / 待办 / 系统。
+     */
+    #[Route('/admin/notifications')]
+    public function notifications(): JsonResponse
+    {
+        $adminId = $this->saToken->getCurrentLoginId();
+
+        $rows = model\AdminNotification::where('admin_id', $adminId)
+            ->order('id', 'desc')
+            ->limit(50)
+            ->select()
+            ->toArray();
+
+        // 类型 → 中文标签
+        $typeLabels = [
+            'notice' => '通知',
+            'todo'   => '待办',
+            'system' => '系统',
+        ];
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $type  = (string) ($row['type'] ?? 'notice');
+            $label = $typeLabels[$type] ?? '通知';
+
+            if (!isset($grouped[$type])) {
+                $grouped[$type] = [
+                    'title'    => $label,
+                    'children' => [],
+                ];
+            }
+
+            $grouped[$type]['children'][] = [
+                'id'      => (int) $row['id'],
+                'title'   => (string) $row['title'],
+                'context' => (string) $row['content'],
+                'form'    => '',
+                'time'    => $this->formatTime((string) ($row['created_at'] ?? '')),
+                'avatar'  => '',
+            ];
+        }
+
+        // 保证固定顺序：通知、待办、系统
+        $ordered = [];
+        foreach (['notice', 'todo', 'system'] as $type) {
+            if (isset($grouped[$type])) {
+                $ordered[] = $grouped[$type];
+            }
+        }
+
+        return $this->success($ordered);
+    }
+
+    /**
+     * 将时间格式化为相对时间描述。
+     */
+    private function formatTime(string $time): string
+    {
+        if ($time === '') {
+            return '';
+        }
+
+        $ts  = strtotime($time);
+        $diff = time() - $ts;
+
+        if ($diff < 60) {
+            return '刚刚';
+        }
+        if ($diff < 3600) {
+            return (int) ($diff / 60) . ' 分钟前';
+        }
+        if ($diff < 86400) {
+            return (int) ($diff / 3600) . ' 小时前';
+        }
+        if ($diff < 86400 * 7) {
+            return (int) ($diff / 86400) . ' 天前';
+        }
+
+        return date('Y-m-d', $ts);
     }
 
     // ── 资源列表 ──────────────────────────────────────────────────

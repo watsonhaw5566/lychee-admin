@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ title }} - Lychee Admin</title>
+    <title>{{ title|default('Lychee Admin') }}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link rel="icon" type="image/png" href="{{ asset('lychee/admin/images/logo.png') }}">
@@ -10,11 +10,11 @@
     <link rel="stylesheet" href="{{ asset('lychee/admin/css/reset.css') }}" />
     <link rel="stylesheet" href="{{ asset('lychee/admin/css/admin.css') }}" />
     <link rel="stylesheet" href="{{ asset('lychee/admin/css/admin.dark.css') }}" />
-    {% block head %}{% endblock %}
 </head>
 <body class="layui-layout-body pear-admin">
     <div class="layui-layout layui-layout-admin">
-        {# 顶部 #}
+
+        {# 顶部导航 #}
         <div class="layui-header">
             <div class="layui-logo">
                 <img class="logo" src="{{ asset('lychee/admin/images/logo.png') }}">
@@ -25,6 +25,9 @@
                 <li class="refresh layui-nav-item"><a href="#" class="layui-icon layui-icon-refresh-1" loading="600"></a></li>
             </ul>
             <ul class="layui-nav layui-layout-right">
+                <li class="layui-nav-item layui-hide-xs"><a href="#" class="fullScreen layui-icon layui-icon-screen-full"></a></li>
+                <li class="layui-nav-item layui-hide-xs message" lay-unselect></li>
+                <li class="layui-nav-item layui-hide-xs"><a href="#" class="setting layui-icon layui-icon-theme"></a></li>
                 <li class="layui-nav-item user">
                     <a class="layui-icon layui-icon-username" href="javascript:;"></a>
                     <dl class="layui-nav-child">
@@ -41,33 +44,13 @@
                 <span class="title">Lychee Admin</span>
             </div>
             <div class="layui-side-scroll">
-                <div id="side">
-                    <ul class="layui-nav layui-nav-tree" lay-filter="side">
-                        <li class="layui-nav-item">
-                            <a href="/admin"><i class="layui-icon layui-icon-console"></i>&emsp;<cite>仪表盘</cite></a>
-                        </li>
-                        {% for group, items in menu %}
-                        <li class="layui-nav-item">
-                            <a href="javascript:;"><i class="layui-icon layui-icon-app"></i>&emsp;<cite>{{ group }}</cite></a>
-                            <dl class="layui-nav-child">
-                                {% for item in items %}
-                                <dd><a href="/admin/{{ item.model|split('\\')|last|lower }}"><i class="layui-icon {{ item.icon ?: 'layui-icon-face-smile' }}"></i>&emsp;<cite>{{ item.title }}</cite></a></dd>
-                                {% endfor %}
-                            </dl>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
+                <div id="side"></div>
             </div>
         </div>
 
-        {# 内容区 #}
+        {# 内容区（由 pear-admin tabPage 管理） #}
         <div class="layui-body">
-            <div id="content">
-                <div class="pear-container">
-                    {% block content %}{% endblock %}
-                </div>
-            </div>
+            <div id="content"></div>
         </div>
 
         <div class="layui-footer layui-text">Copyright © 2026 Lychee Admin</div>
@@ -85,33 +68,113 @@
     <script src="{{ asset('lychee/component/layui/layui.js') }}"></script>
     <script src="{{ asset('lychee/component/pear/pear.js') }}"></script>
     <script>
-        layui.use(['element', 'popup'], function() {
-            var element = layui.element;
+        // 构建 pear-admin 菜单数据
+        var menuData = [
+            {
+                id: 'dashboard',
+                title: '仪表盘',
+                icon: 'layui-icon layui-icon-console',
+                type: 1,
+                href: '/admin/dashboard',
+                openType: '_component'
+            }
+            {% for group, items in menu %}
+            ,{
+                id: 'group-{{ loop.index }}',
+                title: '{{ group }}',
+                icon: 'layui-icon layui-icon-app',
+                type: 0,
+                children: [
+                    {% for item in items %}
+                    {
+                        id: '{{ item.model|split('\\')|last|lower }}',
+                        title: '{{ item.title }}',
+                        icon: '{{ item.icon ?: 'layui-icon layui-icon-face-smile' }}',
+                        type: 1,
+                        href: '/admin/{{ item.model|split('\\')|last|lower }}',
+                        openType: '_component'
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            }
+            {% endfor %}
+        ];
+
+        // pear-admin 配置
+        var pearConfig = {
+            logo: {
+                image: '{{ asset('lychee/admin/images/logo.png') }}',
+                title: 'Lychee Admin'
+            },
+            menu: {
+                data: menuData,
+                async: false,
+                method: 'GET',
+                accordion: true,
+                control: false,
+                collapse: false,
+                select: 'dashboard'
+            },
+            header: {
+                message: '/admin/notifications'
+            },
+            tab: {
+                index: {
+                    id: 'dashboard',
+                    href: '/admin/dashboard',
+                    title: '仪表盘'
+                },
+                enable: true,
+                session: false,
+                max: 20,
+                preload: false,
+                keepState: false
+            },
+            theme: {
+                defaultColor: 'default',
+                defaultMenu: 'dark-theme',
+                defaultHeader: 'light-theme',
+                dark: false,
+                allowCustom: true
+            },
+            colors: [
+                { id: 'default', color: '#D6336C', second: '#D6336C' },
+                { id: 'blue', color: '#1E9FFF', second: '#1E9FFF' },
+                { id: 'green', color: '#16BAAA', second: '#16BAAA' },
+                { id: 'red', color: '#FF5722', second: '#FF5722' },
+                { id: 'orange', color: '#FFB800', second: '#FFB800' },
+                { id: 'purple', color: '#A233C6', second: '#A233C6' }
+            ],
+            other: {
+                keepLoad: 200,
+                autoHead: false,
+                footer: true
+            }
+        };
+
+        layui.use(['admin', 'popup', 'jquery'], function () {
+            var admin = layui.admin;
             var popup = layui.popup;
             var $ = layui.jquery;
 
-            // 注销
-            $('.logout').on('click', function() {
-                fetch('/admin/logout', {method: 'POST'})
-                    .then(r => r.json())
-                    .then(function() {
-                        popup.success('注销成功', function() {
-                            location.href = '/admin/login';
-                        });
-                    });
+            // 注销逻辑
+            admin.logout(function () {
+                return new Promise(function (resolve) {
+                    fetch('/admin/logout', { method: 'POST' })
+                        .then(function (r) { return r.json(); })
+                        .then(function () {
+                            popup.success('注销成功', function () {
+                                location.href = '/admin/login';
+                            });
+                            resolve(true);
+                        })
+                        .catch(function () { resolve(false); });
+                });
             });
 
-            // 刷新
-            $('.refresh').on('click', function() {
-                location.reload();
-            });
-
-            element.render();
-
-            // 隐藏加载遮罩（菜单由服务端渲染，无需 pearAdmin.render）
-            $(".loader-wrapper").fadeOut(200);
+            // 启动 pear-admin
+            admin.render(pearConfig);
         });
     </script>
-    {% block script %}{% endblock %}
 </body>
 </html>
