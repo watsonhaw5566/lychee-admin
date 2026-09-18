@@ -5,20 +5,11 @@
   "license": "MIT",
   "require": {
     "php": "^8.2",
-    "watsonhaw/lychee-php": "dev-master"
+    "watsonhaw/lychee-php": "^0.5"
   },
   "autoload": {
     "psr-4": {
       "LycheeAdmin\\": "src/"
     }
   },
-  "repositories": [
-    {
-      "type": "path",
-      "url": "/Users/wangjue/PhpstormProjects/ant/lychee-php",
-      "options": {
-        "symlink": true
-      }
-    }
-  ]
 }
