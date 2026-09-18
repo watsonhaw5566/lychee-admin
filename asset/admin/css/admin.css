@@ -680,3 +680,72 @@ body,
 .w-e-full-screen .w-e-text-container {
 	height: calc(100vh - 120px) !important;
 }
+
+/* layui 上传组件预览区 */
+.upload-preview {
+	margin-top: 8px;
+}
+
+.upload-preview .upload-item {
+	position: relative;
+	display: inline-block;
+	width: 92px;
+	height: 92px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+	vertical-align: top;
+}
+
+.upload-preview .upload-item .layui-upload-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 1px solid #e6e6e6;
+	border-radius: 2px;
+	object-fit: cover;
+}
+
+.upload-preview .upload-item .upload-del {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 18px;
+	height: 18px;
+	line-height: 18px;
+	text-align: center;
+	background: #FF5722;
+	color: #fff;
+	border-radius: 50%;
+	font-size: 12px;
+	cursor: pointer;
+	z-index: 2;
+	text-decoration: none;
+	opacity: .85;
+}
+
+.upload-preview .upload-item .upload-del:hover {
+	opacity: 1;
+}
+
+.upload-preview-file .upload-item {
+	display: block;
+	width: auto;
+	height: auto;
+	padding: 6px 8px;
+	background: #f8f8f8;
+	border: 1px solid #e6e6e6;
+	border-radius: 2px;
+	font-size: 12px;
+}
+
+.upload-preview-file .upload-item .upload-del {
+	top: 50%;
+	right: 8px;
+	transform: translateY(-50%);
+}
+
+.upload-preview-file .upload-item a:first-child {
+	color: #1e9fff;
+	margin-right: 28px;
+	word-break: break-all;
+}

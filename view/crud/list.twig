@@ -104,7 +104,30 @@ layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
                             tr += '<td style="text-align:center;"><input type="checkbox" class="row-check" value="' + row.id + '" lay-skin="primary" lay-filter="rowCheck-' + resource + '"></td>';
                         }
                         {% for field in admin.getListFields() %}
+                        {% set fieldConfig = admin.getFormFields()[field] ?? null %}
+                        {% set fieldType = fieldConfig is iterable ? (fieldConfig.type ?? 'text') : (fieldConfig ?? 'text') %}
+                        {% if fieldType == 'image' %}
+                        (function () {
+                            var v = row['{{ field }}'] || '';
+                            var urls = [];
+                            if (v) {
+                                try {
+                                    var parsed = JSON.parse(v);
+                                    urls = Array.isArray(parsed) ? parsed : [v];
+                                } catch (e) { urls = [v]; }
+                            }
+                            if (urls.length) {
+                                var imgs = urls.map(function (u) {
+                                    return u ? '<img src="' + u + '" style="width:40px;height:40px;object-fit:cover;border:1px solid #eee;border-radius:2px;margin-right:4px;cursor:pointer;" onclick="layer.photos({photos:{data:[{src:\'' + u + '\'}]}})">' : '';
+                                }).join('');
+                                tr += '<td>' + imgs + '</td>';
+                            } else {
+                                tr += '<td></td>';
+                            }
+                        })();
+                        {% else %}
                         tr += '<td>' + (row['{{ field }}'] ?? '') + '</td>';
+                        {% endif %}
                         {% endfor %}
                         tr += '<td>';
                         {% if admin.canUpdate() %}

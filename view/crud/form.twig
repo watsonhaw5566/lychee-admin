@@ -55,31 +55,61 @@
 
                         {% elseif type == 'image' %}
                         {% set isMultiple = config.multiple ?? false %}
-                        <input type="file" name="{{ field }}{% if isMultiple %}[]{% endif %}" accept="image/*" class="layui-input" style="height:auto;"{% if isMultiple %} multiple{% endif %}{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
-                        {% if isMultiple %}
-                            {% set imageList = value is iterable ? value : [] %}
-                            <div style="margin-top:8px;">
+                        {% set storedValue = value is iterable ? (value|json_encode|e('html_attr')) : (value|e('html_attr')) %}
+                        <input type="hidden" name="{{ field }}" value="{{ storedValue }}" id="upload-value-{{ resource }}-{{ field }}">
+                        <button type="button" class="layui-btn layui-btn-sm" id="upload-btn-{{ resource }}-{{ field }}"
+                                data-field="{{ field }}" data-type="image" data-multiple="{{ isMultiple ? '1' : '0' }}">
+                            <i class="layui-icon layui-icon-upload"></i> 上传图片
+                        </button>
+                        <div class="layui-upload-list upload-preview" id="upload-preview-{{ resource }}-{{ field }}">
+                            {% if isMultiple %}
+                                {% set imageList = value is iterable ? value : [] %}
                                 {% for img in imageList %}
-                                    {% if img %}<img src="{{ img }}" alt="预览" style="max-width:120px;max-height:120px;border:1px solid #eee;margin-right:8px;margin-bottom:8px;display:inline-block;vertical-align:top;">{% endif %}
+                                    {% if img %}
+                                    <div class="upload-item" data-url="{{ img }}">
+                                        <img src="{{ img }}" class="layui-upload-img">
+                                        <a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>
+                                    </div>
+                                    {% endif %}
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            {% if value %}<img src="{{ value }}" alt="预览" style="max-width:120px;margin-top:8px;border:1px solid #eee;">{% endif %}
-                        {% endif %}
+                            {% else %}
+                                {% if value %}
+                                <div class="upload-item" data-url="{{ value }}">
+                                    <img src="{{ value }}" class="layui-upload-img">
+                                    <a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
 
                         {% elseif type == 'file' %}
                         {% set isMultiple = config.multiple ?? false %}
-                        <input type="file" name="{{ field }}{% if isMultiple %}[]{% endif %}" class="layui-input" style="height:auto;"{% if isMultiple %} multiple{% endif %}{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
-                        {% if isMultiple %}
-                            {% set fileList = value is iterable ? value : [] %}
-                            <div style="margin-top:4px;">
+                        {% set storedValue = value is iterable ? (value|json_encode|e('html_attr')) : (value|e('html_attr')) %}
+                        <input type="hidden" name="{{ field }}" value="{{ storedValue }}" id="upload-value-{{ resource }}-{{ field }}">
+                        <button type="button" class="layui-btn layui-btn-sm" id="upload-btn-{{ resource }}-{{ field }}"
+                                data-field="{{ field }}" data-type="file" data-multiple="{{ isMultiple ? '1' : '0' }}">
+                            <i class="layui-icon layui-icon-upload"></i> 上传文件
+                        </button>
+                        <div class="layui-upload-list upload-preview upload-preview-file" id="upload-preview-{{ resource }}-{{ field }}">
+                            {% if isMultiple %}
+                                {% set fileList = value is iterable ? value : [] %}
                                 {% for f in fileList %}
-                                    {% if f %}<div><a href="{{ f }}" target="_blank" style="font-size:12px;">{{ f }}</a></div>{% endif %}
+                                    {% if f %}
+                                    <div class="upload-item" data-url="{{ f }}">
+                                        <a href="{{ f }}" target="_blank">{{ f }}</a>
+                                        <a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>
+                                    </div>
+                                    {% endif %}
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
-                        {% endif %}
+                            {% else %}
+                                {% if value %}
+                                <div class="upload-item" data-url="{{ value }}">
+                                    <a href="{{ value }}" target="_blank">{{ value }}</a>
+                                    <a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
 
                         {% elseif type == 'richtext' %}
                         <div class="w-e-wrapper" data-richtext-field="{{ field }}">
@@ -107,11 +137,12 @@
 </div>
 
 <script>
-layui.use(['jquery', 'form', 'layer', 'admin'], function () {
+layui.use(['jquery', 'form', 'layer', 'admin', 'upload'], function () {
     var $ = layui.jquery;
     var form = layui.form;
     var layer = layui.layer;
     var admin = layui.admin;
+    var upload = layui.upload;
 
     var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
@@ -175,17 +206,115 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
         richtextEditors[field] = editor;
     });
 
-    // 返回：关闭当前标签页，回到列表
+    // 初始化 layui 上传组件（图片 / 文件，单文件 / 多文件）
+    document.querySelectorAll('[id^="upload-btn-"]').forEach(function (btn) {
+        var field = btn.getAttribute('data-field');
+        var ftype = btn.getAttribute('data-type');
+        var multiple = btn.getAttribute('data-multiple') === '1';
+        var valueInput = document.getElementById('upload-value-' + resource + '-' + field);
+        var previewBox = document.getElementById('upload-preview-' + resource + '-' + field);
+
+        // 读取已存储的值
+        function getStoredUrls() {
+            var raw = valueInput.value;
+            if (!raw) return [];
+            if (multiple) {
+                try {
+                    var arr = JSON.parse(raw);
+                    return Array.isArray(arr) ? arr : [];
+                } catch (e) { return []; }
+            }
+            return raw ? [raw] : [];
+        }
+
+        function saveUrls(urls) {
+            if (multiple) {
+                valueInput.value = JSON.stringify(urls);
+            } else {
+                valueInput.value = urls.length ? urls[0] : '';
+            }
+        }
+
+        function renderPreview(urls) {
+            previewBox.innerHTML = '';
+            urls.forEach(function (url) {
+                if (!url) return;
+                var item = document.createElement('div');
+                item.className = 'upload-item';
+                item.setAttribute('data-url', url);
+                if (ftype === 'image') {
+                    item.innerHTML = '<img src="' + url + '" class="layui-upload-img">' +
+                        '<a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>';
+                } else {
+                    item.innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>' +
+                        '<a href="javascript:;" class="upload-del"><i class="layui-icon layui-icon-close"></i></a>';
+                }
+                previewBox.appendChild(item);
+            });
+        }
+
+        // 已存在值的预览
+        renderPreview(getStoredUrls());
+
+        // 绑定删除
+        previewBox.addEventListener('click', function (e) {
+            var del = e.target.closest('.upload-del');
+            if (!del) return;
+            var item = del.closest('.upload-item');
+            if (!item) return;
+            var url = item.getAttribute('data-url');
+            var urls = getStoredUrls().filter(function (u) { return u !== url; });
+            saveUrls(urls);
+            renderPreview(urls);
+        });
+
+        upload.render({
+            elem: '#' + btn.id,
+            url: '/admin/upload',
+            field: 'file',
+            accept: ftype === 'image' ? 'images' : 'file',
+            multiple: multiple,
+            before: function () {
+                layer.msg('上传中...', { icon: 16, time: 0 });
+            },
+            done: function (res) {
+                layer.closeAll();
+                if (res.errno !== 0 || !res.data || !res.data.url) {
+                    layer.msg(res.message || '上传失败', { icon: 2 });
+                    return;
+                }
+                var url = res.data.url;
+                var urls = getStoredUrls();
+                if (multiple) {
+                    urls.push(url);
+                } else {
+                    urls = [url];
+                }
+                saveUrls(urls);
+                renderPreview(urls);
+                layer.msg('上传成功', { icon: 1 });
+            },
+            error: function () {
+                layer.closeAll();
+                layer.msg('上传失败', { icon: 2 });
+            }
+        });
+    });
+
+    // 返回：关闭当前标签页，回到列表，并刷新列表数据
     function backToList() {
         var tabFilter = $('.layui-tab[lay-filter="content"]');
         var currentTabId = tabFilter.find('.layui-tab-title .layui-this').attr('lay-id');
         var listTabExists = tabFilter.find('.layui-tab-title li[lay-id="' + resource + '"]').length > 0;
 
         if (listTabExists && currentTabId) {
-            // 列表标签页存在，直接关闭当前标签页，pear-admin 会自动切回列表页
+            // 列表标签页存在，关闭当前标签页后 pear-admin 自动切回列表页，再刷新
             admin.instances.tabPage.removeTab(currentTabId);
+            setTimeout(function () {
+                admin.instances.tabPage.refresh(false);
+            }, 100);
         } else {
-            // 列表标签页不存在，切换到列表页
+            // 列表标签页不存在，切换到列表页（changePage 本身会重新加载）
             admin.changePage({
                 id: resource,
                 title: title,
@@ -210,27 +339,21 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
         });
 
         var formData = new FormData(formEl);
-        var hasFile = Array.from(formEl.querySelectorAll('input[type="file"]')).some(function (f) {
-            return f.files && f.files.length > 0;
-        });
 
         var url = isEdit ? '/admin/' + resource + '/' + editId : '/admin/' + resource;
         var method = isEdit ? 'PUT' : 'POST';
 
-        var fetchOptions = { method: method };
-        if (hasFile) {
-            // 文件上传：使用 multipart/form-data，不手动设置 Content-Type（浏览器自动加 boundary）
-            fetchOptions.body = formData;
-        } else {
-            var params = new URLSearchParams();
-            for (var pair of formData.entries()) {
-                if (pair[1] !== '') params.append(pair[0], pair[1]);
-            }
-            fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-            fetchOptions.body = params.toString();
+        // 所有字段均为字符串（上传组件已通过 AJAX 上传并将 URL 存入隐藏域），统一使用 urlencoded 提交
+        var params = new URLSearchParams();
+        for (var pair of formData.entries()) {
+            if (pair[1] !== '') params.append(pair[0], pair[1]);
         }
 
-        fetch(url, fetchOptions)
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        })
         .then(function (r) { return r.json(); })
         .then(function (res) {
             if (res.code === 200) {

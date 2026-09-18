@@ -667,10 +667,10 @@ class AdminController extends Controller
     }
 
     /**
-     * 处理 image/file 类型字段的文件上传。
+     * 处理图片 / 文件字段。
      *
-     * 若对应字段有上传文件则保存并写入 $data；
-     * 若无文件则不在 $data 中包含该字段（编辑时保留原值）。
+     * 文件由 layui 上传组件通过 /admin/upload 接口异步上传，返回的 URL 已存入隐藏域，
+     * 因此此处只需处理「编辑时未提交新值则保留原值」的逻辑。
      *
      * @param array<string, mixed> $data
      * @param object|null          $existing 编辑时的已有模型实例
@@ -684,44 +684,11 @@ class AdminController extends Controller
                 continue;
             }
 
-            $isMultiple = is_array($config) ? !empty($config['multiple']) : false;
+            $value = $data[$field] ?? null;
 
-            if ($isMultiple) {
-                $files = $this->request->file($field);
-                if (is_array($files) && !empty($files)) {
-                    $paths = [];
-                    foreach ($files as $file) {
-                        if ($file instanceof UploadedFile && $file->isValid()) {
-                            $ext      = $file->extension() ?: 'bin';
-                            $dir      = 'uploads/admin/' . date('Y-m');
-                            $filename = uniqid() . '.' . $ext;
-                            $path     = storage()->putFileAs($dir, $file, $filename);
-                            if ($path !== false) {
-                                $paths[] = storage()->url($path);
-                            }
-                        }
-                    }
-                    if (!empty($paths)) {
-                        $data[$field] = json_encode($paths, JSON_UNESCAPED_UNICODE);
-                    }
-                } elseif ($existing !== null) {
-                    // 编辑且未上传新文件：移除该字段，保留原值
-                    unset($data[$field]);
-                }
-            } else {
-                $file = $this->request->file($field);
-                if ($file instanceof UploadedFile && $file->isValid()) {
-                    $ext      = $file->extension() ?: 'bin';
-                    $dir      = 'uploads/admin/' . date('Y-m');
-                    $filename = uniqid() . '.' . $ext;
-                    $path     = storage()->putFileAs($dir, $file, $filename);
-                    if ($path !== false) {
-                        $data[$field] = storage()->url($path);
-                    }
-                } elseif ($existing !== null) {
-                    // 编辑且未上传新文件：移除该字段，保留原值
-                    unset($data[$field]);
-                }
+            // 编辑且未提交新值：移除该字段，保留数据库原值
+            if ($existing !== null && ($value === null || $value === '')) {
+                unset($data[$field]);
             }
         }
 

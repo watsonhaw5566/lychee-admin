@@ -461,3 +461,17 @@
 .pear-admin-dark .w-e-wrapper .w-e-text-container span {
     background-color: transparent;
 }
+
+/* 夜间模式：上传预览区 */
+.pear-admin-dark .upload-preview .upload-item .layui-upload-img {
+    border-color: #3D2B2E;
+}
+
+.pear-admin-dark .upload-preview-file .upload-item {
+    background-color: #2C2024;
+    border-color: #3D2B2E;
+}
+
+.pear-admin-dark .upload-preview-file .upload-item a:first-child {
+    color: #F5E8EA;
+}
