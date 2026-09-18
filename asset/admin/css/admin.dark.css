@@ -69,7 +69,7 @@
 .pear-admin-dark .layui-side .layui-logo,
 .pear-admin-dark .layui-side .layui-side-scroll, 
 .pear-admin-dark .layui-side .layui-side-scroll .layui-nav-tree{
-    background-color: #241B1E !important;
+    background-color: #2E2226 !important;
 }
 
 .pear-admin-dark .layui-side .layui-side-scroll .layui-nav-tree .layui-nav-child {
@@ -211,10 +211,19 @@
 }
 
 /** input */
-.pear-admin-dark .layui-input {
+.pear-admin-dark .layui-input,
+.pear-admin-dark .layui-textarea,
+.pear-admin-dark textarea,
+.pear-admin-dark select {
     background-color: transparent;
     color: #F5E8EA;
     border-color: var(--border) !important;
+}
+
+.pear-admin-dark .layui-textarea::placeholder,
+.pear-admin-dark .layui-input::placeholder,
+.pear-admin-dark textarea::placeholder {
+    color: rgba(245, 232, 234, .4);
 }
 
 /** switch */
