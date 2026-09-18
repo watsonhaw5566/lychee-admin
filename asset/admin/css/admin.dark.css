@@ -351,11 +351,6 @@
     background-color: #241B1E !important;
 }
 
-.pear-admin-dark .deputy:hover,
-.pear-admin-dark .shortcut-menu:hover {
-    box-shadow: 0 3px 4px rgba(0, 0, 0, .6) !important;
-}
-
 .pear-admin-dark .message-board li {
     border-bottom: 1px solid var(--border) !important;
 }
