@@ -102,17 +102,33 @@ cp -r vendor/watsonhaw/lychee-admin/asset/* public/lychee/
 
 访问 `/admin`，使用默认账号 `admin` / `admin123` 登录。
 
-## 注册资源
+## 创建资源
+
+### 方式一：命令行生成（推荐）
+
+使用 `make:admin` 命令一键生成资源类骨架：
+
+```bash
+# 生成 app/admin/ArticleAdmin.php，模型默认指向 App\model\Article
+php lee make:admin Article
+
+# 指定模型类名
+php lee make:admin Article --model="App\\model\\Article"
+```
+
+生成的资源类放在 `app/admin/` 目录下（命名空间 `App\admin`），同时会自动创建对应的 Model 类（若不存在）。文件包含常用配置（listFields、formFields、searchFields、fieldLabels 等），开箱即用。
+
+### 方式二：手动创建
 
 每个需要在后台管理的模型对应一个继承 `AdminResource` 的子类，声明配置属性即可自动获得 CRUD 界面，无需编写控制器。
 
 ```php
 <?php
 
-namespace App\Admin;
+namespace App\admin;
 
 use LycheeAdmin\AdminResource;
-use App\Model\Article;
+use App\model\Article;
 
 class ArticleAdmin extends AdminResource
 {
@@ -298,7 +314,7 @@ class ArticleAdmin extends AdminResource
 ```php
 <?php
 
-namespace App\Admin;
+namespace App\admin;
 
 use LycheeAdmin\Admin\UserAdmin;
 

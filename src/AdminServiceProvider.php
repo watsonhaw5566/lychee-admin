@@ -12,6 +12,7 @@ use Lychee\plugin\PluginInterface;
 use Lychee\routing\Router;
 use Lychee\view\View;
 use LycheeAdmin\command\PublishCommand;
+use LycheeAdmin\command\MakeAdminCommand;
 use LycheeAdmin\middleware\AdminAuthMiddleware;
 use LycheeAdmin\resource\MenuAdmin;
 use LycheeAdmin\resource\PermissionAdmin;
@@ -149,5 +150,6 @@ class AdminServiceProvider implements PluginInterface
         /** @var ConsoleApplication $console */
         $console = $container->get(ConsoleApplication::class);
         $console->addCommand(PublishCommand::class);
+        $console->addCommand(MakeAdminCommand::class);
     }
 }

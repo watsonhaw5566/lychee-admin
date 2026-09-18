@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use LycheeAdmin\AdminResource;
+use {{modelClass}};
+
+/**
+ * {{title}} 后台资源。
+ *
+ * 继承 AdminResource，声明配置属性即可自动获得 CRUD 界面，无需编写控制器。
+ */
+class {{class}} extends AdminResource
+{
+    /** 模型类名 */
+    protected string $model = {{model}}::class;
+
+    /** 菜单标题 */
+    protected string $title = '{{title}}';
+
+    /** 菜单图标（layui/pear 图标类名） */
+    protected string $icon = 'layui-icon layui-icon-file';
+
+    /** 菜单分组 */
+    protected string $group = '默认';
+
+    /** 列表显示字段 */
+    protected array $listFields = ['id', 'title', 'status', 'create_time'];
+
+    /** 表单字段：字段名 => 类型（或完整配置数组） */
+    protected array $formFields = [
+        'title'  => ['type' => 'text', 'required' => true],
+        'status' => ['type' => 'switch'],
+    ];
+
+    /** 搜索字段（列表页顶部搜索框） */
+    protected array $searchFields = ['title'];
+
+    /** 筛选字段（列表页筛选条件） */
+    protected array $filterFields = ['status'];
+
+    /** 字段中文标签 */
+    protected array $fieldLabels = [
+        'title'  => '标题',
+        'status' => '状态',
+    ];
+}
