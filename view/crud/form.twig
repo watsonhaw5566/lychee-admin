@@ -73,6 +73,7 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
     form.render();
 
     // 返回：关闭当前标签页，回到列表
+    // 注：keepState=false 时，changePage 切换到已存在的标签会自动触发 refresh，无需再手动刷新
     function backToList() {
         var currentTabId = $('.layui-tab[lay-filter="content"] .layui-tab-title .layui-this').attr('lay-id');
         admin.changePage({
@@ -81,12 +82,9 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
             url: '/admin/' + resource,
             type: '_component'
         });
-        setTimeout(function () {
-            admin.instances.tabPage.refresh(false);
-            if (currentTabId) {
-                admin.instances.tabPage.removeTab(currentTabId);
-            }
-        }, 200);
+        if (currentTabId) {
+            admin.instances.tabPage.removeTab(currentTabId);
+        }
     }
 
     document.getElementById('back-btn-' + resource).addEventListener('click', backToList);

@@ -628,3 +628,32 @@ body,
 	text-align: center;
 	color: #333;
 }
+
+/* 列表全局 loading 弹层（pear ball-loader，自动跟随主题色） */
+.pear-loading-layer {
+	box-shadow: none !important;
+	border: none !important;
+	background: transparent !important;
+	border-radius: 8px !important;
+	overflow: hidden;
+}
+
+.pear-loading-layer .layui-layer-content {
+	position: relative;
+	height: 80px !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.pear-loading-layer .ball-loader {
+	position: static !important;
+	transform: none !important;
+}
+
+.pear-loading-layer .ball-loader > span {
+	background-color: var(--global-primary-color) !important;
+}

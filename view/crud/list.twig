@@ -57,6 +57,16 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
     var pageSize = 20;
 
     function loadData() {
+        var loadIndex = layer.open({
+            type: 1,
+            shade: 0,
+            area: ['120px', '80px'],
+            closeBtn: 0,
+            title: false,
+            shadeClose: false,
+            skin: 'pear-loading-layer',
+            content: '<div class="ball-loader"><span></span><span></span><span></span><span></span></div>'
+        });
         var params = new URLSearchParams();
         params.append('page', currentPage);
         params.append('limit', pageSize);
@@ -68,6 +78,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
         fetch('/admin/' + resource + '/data?' + params.toString())
             .then(function (r) { return r.json(); })
             .then(function (res) {
+                layer.close(loadIndex);
                 var tbody = document.getElementById('data-body-' + resource);
                 if (!tbody) return;
                 tbody.innerHTML = '';
@@ -91,6 +102,9 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
                     tbody.innerHTML = '<tr><td colspan="{{ admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
                 }
                 renderPagination(res.count || 0);
+            })
+            .catch(function () {
+                layer.close(loadIndex);
             });
     }
 
