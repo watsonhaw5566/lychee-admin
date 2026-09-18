@@ -8,7 +8,7 @@
             <div class="layui-form" style="margin-bottom:15px;">
                 <div class="layui-inline">
                     {% for field in admin.getSearchFields() %}
-                    <input type="text" name="{{ field }}" placeholder="{{ field }}" class="layui-input search-input" style="width:150px;display:inline-block;margin-right:10px;">
+                    <input type="text" name="{{ field }}" placeholder="{{ admin.getFieldLabel(field) }}" class="layui-input search-input" style="width:150px;display:inline-block;margin-right:10px;">
                     {% endfor %}
                     <button class="layui-btn" id="search-btn-{{ resource }}">搜索</button>
                     <button class="layui-btn layui-btn-primary" id="reset-btn-{{ resource }}">重置</button>
@@ -30,7 +30,7 @@
                 <thead>
                     <tr>
                         {% for field in admin.getListFields() %}
-                        <th>{{ field }}</th>
+                        <th>{{ admin.getFieldLabel(field) }}</th>
                         {% endfor %}
                         <th style="width:160px;">操作</th>
                     </tr>

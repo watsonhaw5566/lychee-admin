@@ -18,6 +18,13 @@ class RoleAdmin extends AdminResource
 
     protected array $listFields = ['id', 'name', 'description', 'create_time'];
 
+    protected array $fieldLabels = [
+        'name'           => '角色名称',
+        'description'    => '角色描述',
+        'permission_ids' => '权限',
+        'status'         => '状态',
+    ];
+
     protected array $formFields = [
         'name'           => 'text',
         'description'    => 'textarea',

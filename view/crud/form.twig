@@ -6,7 +6,7 @@
             <form class="layui-form" id="crud-form-{{ resource }}" style="max-width:600px;">
                 {% for field, config in admin.getFormFields() %}
                 <div class="layui-form-item">
-                    <label class="layui-form-label">{{ field }}</label>
+                    <label class="layui-form-label">{{ admin.getFieldLabel(field) }}</label>
                     <div class="layui-input-block">
                         {% set type = config is iterable ? (config.type ?? 'text') : (config ?? 'text') %}
                         {% set value = data[field] ?? '' %}

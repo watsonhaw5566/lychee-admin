@@ -20,6 +20,18 @@ class UserAdmin extends AdminResource
 
     protected array $listFields = ['id', 'username', 'nickname', 'email', 'status', 'create_time'];
 
+    protected array $fieldLabels = [
+        'username'   => '用户名',
+        'password'   => '密码',
+        'nickname'   => '昵称',
+        'email'      => '邮箱',
+        'avatar'     => '头像',
+        'role_ids'   => '角色',
+        'is_super'   => '超级管理员',
+        'status'     => '状态',
+        'last_login' => '最后登录时间',
+    ];
+
     protected array $formFields = [
         'username' => 'text',
         'nickname' => 'text',

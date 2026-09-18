@@ -146,6 +146,51 @@ abstract class AdminResource
         return $this->defaultOrder;
     }
 
+    // ── 字段标签（由子类声明）──────────────────────────────────────
+
+    /**
+     * 字段中文标签，由子类声明。
+     *
+     * 未声明的字段会命中 {@see $fieldLabelMap} 内置映射，
+     * 仍未命中则直接使用字段名本身。
+     *
+     * @var array<string, string>
+     */
+    protected array $fieldLabels = [];
+
+    /**
+     * 内置通用字段映射（create_time / update_time / id 等）。
+     *
+     * @var array<string, string>
+     */
+    protected array $fieldLabelMap = [
+        'id'          => 'ID',
+        'create_time' => '创建时间',
+        'update_time' => '更新时间',
+    ];
+
+    /**
+     * 获取所有字段标签。
+     *
+     * 优先级：子类 {@see $fieldLabels} > 内置 {@see $fieldLabelMap} > 字段名。
+     *
+     * @return array<string, string>
+     */
+    public function getFieldLabels(): array
+    {
+        return array_merge($this->fieldLabelMap, $this->fieldLabels);
+    }
+
+    /**
+     * 获取单个字段的标签。
+     */
+    public function getFieldLabel(string $field): string
+    {
+        $labels = $this->getFieldLabels();
+
+        return $labels[$field] ?? $field;
+    }
+
     // ── 钩子方法（子类可覆盖）────────────────────────────────────
 
     /**

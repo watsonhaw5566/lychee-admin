@@ -19,6 +19,15 @@ class MenuAdmin extends AdminResource
 
     protected array $listFields = ['id', 'parent_id', 'title', 'icon', 'path', 'sort', 'status'];
 
+    protected array $fieldLabels = [
+        'parent_id' => '父级菜单',
+        'title'     => '菜单标题',
+        'icon'      => '图标',
+        'path'      => '路由路径',
+        'sort'      => '排序',
+        'status'    => '状态',
+    ];
+
     protected array $formFields = [
         'parent_id' => ['type' => 'number'],
         'title'     => 'text',

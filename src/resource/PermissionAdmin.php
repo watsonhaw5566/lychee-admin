@@ -19,6 +19,12 @@ class PermissionAdmin extends AdminResource
 
     protected array $listFields = ['id', 'name', 'code', 'description', 'create_time'];
 
+    protected array $fieldLabels = [
+        'name'        => '权限名称',
+        'code'        => '权限标识',
+        'description' => '权限描述',
+    ];
+
     protected array $formFields = [
         'name'        => 'text',
         'code'        => 'text',
