@@ -40,6 +40,20 @@
                         {% elseif type == 'number' %}
                         <input type="number" name="{{ field }}" value="{{ value }}" class="layui-input">
 
+                        {% elseif type == 'date' %}
+                        <input type="date" name="{{ field }}" value="{{ value }}" class="layui-input">
+
+                        {% elseif type == 'image' %}
+                        <input type="file" name="{{ field }}" accept="image/*" class="layui-input" style="height:auto;">
+                        {% if value %}<img src="{{ value }}" alt="预览" style="max-width:120px;margin-top:8px;border:1px solid #eee;">{% endif %}
+
+                        {% elseif type == 'file' %}
+                        <input type="file" name="{{ field }}" class="layui-input" style="height:auto;">
+                        {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
+
+                        {% elseif type == 'richtext' %}
+                        <textarea name="{{ field }}" id="richtext-{{ resource }}-{{ field }}" class="layui-textarea">{{ value }}</textarea>
+
                         {% else %}
                         <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
                         {% endif %}
@@ -59,11 +73,12 @@
 </div>
 
 <script>
-layui.use(['jquery', 'form', 'layer', 'admin'], function () {
+layui.use(['jquery', 'form', 'layer', 'admin', 'layedit'], function () {
     var $ = layui.jquery;
     var form = layui.form;
     var layer = layui.layer;
     var admin = layui.admin;
+    var layedit = layui.layedit;
 
     var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
@@ -72,8 +87,22 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
 
     form.render();
 
+    // 初始化富文本编辑器
+    var richtextEditors = [];
+    document.querySelectorAll('textarea[id^="richtext-"]').forEach(function (ta) {
+        var index = layedit.build(ta.id, { height: 280 });
+        richtextEditors.push({ id: ta.id, index: index });
+    });
+
+    // 同步富文本内容到 textarea
+    function syncRichtext() {
+        richtextEditors.forEach(function (ed) {
+            var ta = document.getElementById(ed.id);
+            if (ta) ta.value = layedit.getContent(ed.index);
+        });
+    }
+
     // 返回：关闭当前标签页，回到列表
-    // 注：keepState=false 时，changePage 切换到已存在的标签会自动触发 refresh，无需再手动刷新
     function backToList() {
         var currentTabId = $('.layui-tab[lay-filter="content"] .layui-tab-title .layui-this').attr('lay-id');
         admin.changePage({
@@ -91,20 +120,31 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
 
     document.getElementById('crud-form-' + resource).addEventListener('submit', function (e) {
         e.preventDefault();
-        var formData = new FormData(this);
-        var params = new URLSearchParams();
-        for (var pair of formData.entries()) {
-            if (pair[1] !== '') params.append(pair[0], pair[1]);
-        }
+        syncRichtext();
+
+        var formEl = this;
+        var formData = new FormData(formEl);
+        var hasFile = Array.from(formEl.querySelectorAll('input[type="file"]')).some(function (f) {
+            return f.files && f.files.length > 0;
+        });
 
         var url = isEdit ? '/admin/' + resource + '/' + editId : '/admin/' + resource;
         var method = isEdit ? 'PUT' : 'POST';
 
-        fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        })
+        var fetchOptions = { method: method };
+        if (hasFile) {
+            // 文件上传：使用 multipart/form-data，不手动设置 Content-Type（浏览器自动加 boundary）
+            fetchOptions.body = formData;
+        } else {
+            var params = new URLSearchParams();
+            for (var pair of formData.entries()) {
+                if (pair[1] !== '') params.append(pair[0], pair[1]);
+            }
+            fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+            fetchOptions.body = params.toString();
+        }
+
+        fetch(url, fetchOptions)
         .then(function (r) { return r.json(); })
         .then(function (res) {
             if (res.code === 200) {
