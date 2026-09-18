@@ -154,23 +154,30 @@
             }
         };
 
-        layui.use(['admin', 'popup', 'jquery'], function () {
+        layui.use(['admin', 'popup', 'jquery', 'layer'], function () {
             var admin = layui.admin;
             var popup = layui.popup;
+            var layer = layui.layer;
             var $ = layui.jquery;
 
-            // 注销逻辑
+            // 注销逻辑（二次确认）
             admin.logout(function () {
                 return new Promise(function (resolve) {
-                    fetch('/admin/logout', { method: 'POST' })
-                        .then(function (r) { return r.json(); })
-                        .then(function () {
-                            popup.success('注销成功', function () {
-                                location.href = '/admin/login';
-                            });
-                            resolve(true);
-                        })
-                        .catch(function () { resolve(false); });
+                    layer.confirm('确定要注销登录吗？', { icon: 3, title: '注销确认' }, function (index) {
+                        layer.close(index);
+                        fetch('/admin/logout', { method: 'POST' })
+                            .then(function (r) { return r.json(); })
+                            .then(function () {
+                                popup.success('注销成功', function () {
+                                    location.href = '/admin/login';
+                                });
+                                resolve(true);
+                            })
+                            .catch(function () { resolve(false); });
+                    }, function () {
+                        // 取消
+                        resolve(false);
+                    });
                 });
             });
 
