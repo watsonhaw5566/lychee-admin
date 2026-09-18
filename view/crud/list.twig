@@ -132,7 +132,8 @@ layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
             id: resource + '-edit-' + id,
             title: '编辑' + title,
             url: '/admin/' + resource + '/' + id + '/edit',
-            type: '_component'
+            type: '_component',
+            close: true
         });
     };
 
@@ -227,7 +228,8 @@ layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
             id: resource + '-create',
             title: '新增' + title,
             url: '/admin/' + resource + '/create',
-            type: '_component'
+            type: '_component',
+            close: true
         });
     });
 

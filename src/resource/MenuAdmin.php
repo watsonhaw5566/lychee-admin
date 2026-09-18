@@ -29,15 +29,28 @@ class MenuAdmin extends AdminResource
     ];
 
     protected array $formFields = [
-        'parent_id' => ['type' => 'number'],
+        'parent_id' => ['type' => 'select', 'options' => [0 => '顶级菜单']],
         'title'     => 'text',
         'icon'      => 'text',
         'path'      => 'text',
         'sort'      => ['type' => 'number'],
-        'status'    => ['type' => 'radio', 'options' => [1 => '显示', 0 => '隐藏']],
+        'status'    => ['type' => 'select', 'options' => [1 => '显示', 0 => '隐藏']],
     ];
 
     protected array $searchFields = ['title', 'path'];
 
     protected array $filterFields = ['status'];
+
+    /**
+     * 动态注入父级菜单选项。
+     */
+    public function getFormFields(): array
+    {
+        $fields = $this->formFields;
+
+        $menus = Menu::column('title', 'id');
+        $fields['parent_id']['options'] = [0 => '顶级菜单'] + $menus;
+
+        return $fields;
+    }
 }

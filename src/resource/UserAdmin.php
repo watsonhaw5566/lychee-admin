@@ -6,6 +6,7 @@ namespace LycheeAdmin\resource;
 
 use LycheeAdmin\AdminResource;
 use LycheeAdmin\model\Admin;
+use LycheeAdmin\model\Role;
 use think\Model;
 
 /**
@@ -37,8 +38,8 @@ class UserAdmin extends AdminResource
         'nickname' => 'text',
         'password' => 'password',
         'email'    => 'text',
-        'role_ids' => ['type' => 'checkbox', 'options' => []],
-        'status'   => ['type' => 'radio', 'options' => [1 => '启用', 0 => '禁用']],
+        'role_ids' => ['type' => 'select', 'multiple' => true, 'options' => []],
+        'status'   => ['type' => 'select', 'options' => [1 => '启用', 0 => '禁用']],
     ];
 
     protected array $searchFields = ['username', 'nickname'];
@@ -46,11 +47,23 @@ class UserAdmin extends AdminResource
     protected array $filterFields = ['status'];
 
     /**
-     * 编辑时不显示密码字段（由用户手动输入新密码）。
+     * 动态注入角色选项（从数据库读取）。
+     */
+    public function getFormFields(): array
+    {
+        $fields = $this->formFields;
+
+        $roles = Role::column('name', 'id');
+        $fields['role_ids']['options'] = $roles;
+
+        return $fields;
+    }
+
+    /**
+     * 编辑时密码为空则不更新。
      */
     protected function beforeSave(array $data): array
     {
-        // 编辑时密码为空则移除该字段，不更新密码
         if (isset($data['password']) && $data['password'] === '') {
             unset($data['password']);
         }

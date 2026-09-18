@@ -3,7 +3,7 @@
     <div class="layui-card">
         <div class="layui-card-header">{{ title }}</div>
         <div class="layui-card-body">
-            <form class="layui-form" id="crud-form-{{ resource }}" style="max-width:600px;">
+            <form class="layui-form" lay-filter="crud-form-{{ resource }}" id="crud-form-{{ resource }}" style="max-width:600px;">
                 {% for field, config in admin.getFormFields() %}
                 <div class="layui-form-item">
                     <label class="layui-form-label">{{ admin.getFieldLabel(field) }}</label>
@@ -15,9 +15,10 @@
                         <textarea name="{{ field }}" class="layui-textarea">{{ value }}</textarea>
 
                         {% elseif type == 'select' %}
-                        <select name="{{ field }}">
+                        {% set isMultiple = config.multiple ?? false %}
+                        <select name="{{ field }}{% if isMultiple %}[]{% endif %}" {% if isMultiple %}multiple{% endif %}>
                             {% for val, label in config.options ?? {} %}
-                            <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ val }}" {% if isMultiple %}{% if val in value %}selected{% endif %}{% else %}{% if value == val %}selected{% endif %}{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
 
@@ -28,7 +29,7 @@
 
                         {% elseif type == 'checkbox' %}
                         {% for val, label in config.options ?? {} %}
-                        <input type="checkbox" name="{{ field }}[]" value="{{ val }}" title="{{ label }}" lay-skin="primary">
+                        <input type="checkbox" name="{{ field }}[]" value="{{ val }}" title="{{ label }}" lay-skin="primary" {% if val in value %}checked{% endif %}>
                         {% endfor %}
 
                         {% elseif type == 'switch' %}
@@ -52,7 +53,7 @@
                         {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
 
                         {% elseif type == 'richtext' %}
-                        <textarea name="{{ field }}" id="richtext-{{ resource }}-{{ field }}" class="layui-textarea">{{ value }}</textarea>
+                        <textarea name="{{ field }}" class="layui-textarea" style="min-height:160px;">{{ value }}</textarea>
 
                         {% else %}
                         <input type="text" name="{{ field }}" value="{{ value }}" class="layui-input">
@@ -73,46 +74,39 @@
 </div>
 
 <script>
-layui.use(['jquery', 'form', 'layer', 'admin', 'layedit'], function () {
+layui.use(['jquery', 'form', 'layer', 'admin'], function () {
     var $ = layui.jquery;
     var form = layui.form;
     var layer = layui.layer;
     var admin = layui.admin;
-    var layedit = layui.layedit;
 
     var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
     var isEdit = {{ action == 'edit' ? 'true' : 'false' }};
     var editId = {{ data.id ?? 0 }};
 
-    form.render();
-
-    // 初始化富文本编辑器
-    var richtextEditors = [];
-    document.querySelectorAll('textarea[id^="richtext-"]').forEach(function (ta) {
-        var index = layedit.build(ta.id, { height: 280 });
-        richtextEditors.push({ id: ta.id, index: index });
-    });
-
-    // 同步富文本内容到 textarea
-    function syncRichtext() {
-        richtextEditors.forEach(function (ed) {
-            var ta = document.getElementById(ed.id);
-            if (ta) ta.value = layedit.getContent(ed.index);
-        });
-    }
+    // 定向渲染当前表单（延迟执行确保动态加载的 DOM 就绪）
+    setTimeout(function () {
+        form.render(null, 'crud-form-' + resource);
+    }, 50);
 
     // 返回：关闭当前标签页，回到列表
     function backToList() {
-        var currentTabId = $('.layui-tab[lay-filter="content"] .layui-tab-title .layui-this').attr('lay-id');
-        admin.changePage({
-            id: resource,
-            title: title,
-            url: '/admin/' + resource,
-            type: '_component'
-        });
-        if (currentTabId) {
+        var tabFilter = $('.layui-tab[lay-filter="content"]');
+        var currentTabId = tabFilter.find('.layui-tab-title .layui-this').attr('lay-id');
+        var listTabExists = tabFilter.find('.layui-tab-title li[lay-id="' + resource + '"]').length > 0;
+
+        if (listTabExists && currentTabId) {
+            // 列表标签页存在，直接关闭当前标签页，pear-admin 会自动切回列表页
             admin.instances.tabPage.removeTab(currentTabId);
+        } else {
+            // 列表标签页不存在，切换到列表页
+            admin.changePage({
+                id: resource,
+                title: title,
+                url: '/admin/' + resource,
+                type: '_component'
+            });
         }
     }
 
@@ -120,7 +114,6 @@ layui.use(['jquery', 'form', 'layer', 'admin', 'layedit'], function () {
 
     document.getElementById('crud-form-' + resource).addEventListener('submit', function (e) {
         e.preventDefault();
-        syncRichtext();
 
         var formEl = this;
         var formData = new FormData(formEl);
