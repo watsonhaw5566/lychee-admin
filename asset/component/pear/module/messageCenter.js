@@ -64,7 +64,7 @@ layui.define(['table', 'jquery', 'element', 'dropdown'], function (exports) {
                 noticeContent += '<div class="message-item" notice-form="' + note.form + '" notice-context="' + note.context +
                     '" notice-title="' + note.title + '" notice-id="' + note.id + '">';
 
-                noticeContent += '<img src="' + note.avatar + '"/><div style="display:inline-block;">' + note.title + '</div>' +
+                noticeContent += '<div style="display:inline-block;">' + note.title + '</div>' +
                     '<div class="extra">' + note.time + '</div>' +
                     '</div>';
             })
