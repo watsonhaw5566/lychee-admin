@@ -1,3 +1,4 @@
+{% set resource = admin.getModel()|split('\\')|last|lower %}
 <div class="pear-container">
     <div class="layui-card">
         <div class="layui-card-header">{{ admin.getTitle() }}</div>
@@ -9,8 +10,8 @@
                     {% for field in admin.getSearchFields() %}
                     <input type="text" name="{{ field }}" placeholder="{{ field }}" class="layui-input search-input" style="width:150px;display:inline-block;margin-right:10px;">
                     {% endfor %}
-                    <button class="layui-btn" id="search-btn">搜索</button>
-                    <button class="layui-btn layui-btn-primary" id="reset-btn">重置</button>
+                    <button class="layui-btn" id="search-btn-{{ resource }}">搜索</button>
+                    <button class="layui-btn layui-btn-primary" id="reset-btn-{{ resource }}">重置</button>
                 </div>
             </div>
             {% endif %}
@@ -18,7 +19,7 @@
             {# 操作栏 #}
             <div style="margin-bottom:10px;">
                 {% if admin.canCreate() %}
-                <button class="layui-btn layui-btn-sm" id="create-btn">
+                <button class="layui-btn layui-btn-sm" id="create-btn-{{ resource }}">
                     <i class="layui-icon layui-icon-add-1"></i> 新增
                 </button>
                 {% endif %}
@@ -34,11 +35,11 @@
                         <th style="width:160px;">操作</th>
                     </tr>
                 </thead>
-                <tbody id="data-body"></tbody>
+                <tbody id="data-body-{{ resource }}"></tbody>
             </table>
 
             {# 分页 #}
-            <div id="pagination"></div>
+            <div id="pagination-{{ resource }}"></div>
         </div>
     </div>
 </div>
@@ -50,7 +51,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
     var laypage = layui.laypage;
     var admin = layui.admin;
 
-    var resource = '{{ admin.getModel()|split('\\')|last|lower }}';
+    var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
     var currentPage = 1;
     var pageSize = 20;
@@ -60,14 +61,15 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
         params.append('page', currentPage);
         params.append('limit', pageSize);
 
-        document.querySelectorAll('.search-input').forEach(function (input) {
+        document.querySelectorAll('#data-body-' + resource + ' ~ .search-input, .pear-container .search-input').forEach(function (input) {
             if (input.value) params.append(input.name, input.value);
         });
 
         fetch('/admin/' + resource + '/data?' + params.toString())
             .then(function (r) { return r.json(); })
             .then(function (res) {
-                var tbody = document.getElementById('data-body');
+                var tbody = document.getElementById('data-body-' + resource);
+                if (!tbody) return;
                 tbody.innerHTML = '';
                 if (res.data && res.data.length) {
                     res.data.forEach(function (row) {
@@ -77,10 +79,10 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
                         {% endfor %}
                         tr += '<td>';
                         {% if admin.canUpdate() %}
-                        tr += '<button class="layui-btn layui-btn-xs" onclick="editItem(' + row.id + ')">编辑</button> ';
+                        tr += '<button class="layui-btn layui-btn-xs" onclick="editItem_{{ resource }}(' + row.id + ')">编辑</button> ';
                         {% endif %}
                         {% if admin.canDelete() %}
-                        tr += '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem(' + row.id + ')">删除</button>';
+                        tr += '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem_{{ resource }}(' + row.id + ')">删除</button>';
                         {% endif %}
                         tr += '</td></tr>';
                         tbody.innerHTML += tr;
@@ -92,7 +94,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
             });
     }
 
-    window.editItem = function (id) {
+    window['editItem_{{ resource }}'] = function (id) {
         admin.changePage({
             id: resource + '-edit-' + id,
             title: '编辑' + title,
@@ -101,7 +103,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
         });
     };
 
-    window.delItem = function (id) {
+    window['delItem_{{ resource }}'] = function (id) {
         layer.confirm('确定删除？', { icon: 3, title: '提示' }, function (index) {
             fetch('/admin/' + resource + '/' + id, { method: 'DELETE' })
                 .then(function (r) { return r.json(); })
@@ -119,7 +121,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
 
     function renderPagination(count) {
         laypage.render({
-            elem: 'pagination',
+            elem: 'pagination-' + resource,
             count: count,
             curr: currentPage,
             limit: pageSize,
@@ -133,7 +135,7 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
         });
     }
 
-    document.getElementById('create-btn')?.addEventListener('click', function () {
+    document.getElementById('create-btn-' + resource)?.addEventListener('click', function () {
         admin.changePage({
             id: resource + '-create',
             title: '新增' + title,
@@ -142,13 +144,13 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
         });
     });
 
-    document.getElementById('search-btn')?.addEventListener('click', function () {
+    document.getElementById('search-btn-' + resource)?.addEventListener('click', function () {
         currentPage = 1;
         loadData();
     });
 
-    document.getElementById('reset-btn')?.addEventListener('click', function () {
-        document.querySelectorAll('.search-input').forEach(function (i) { i.value = ''; });
+    document.getElementById('reset-btn-' + resource)?.addEventListener('click', function () {
+        document.querySelectorAll('.pear-container .search-input').forEach(function (i) { i.value = ''; });
         currentPage = 1;
         loadData();
     });

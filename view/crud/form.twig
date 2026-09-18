@@ -1,8 +1,9 @@
+{% set resource = admin.getModel()|split('\\')|last|lower %}
 <div class="pear-container">
     <div class="layui-card">
         <div class="layui-card-header">{{ title }}</div>
         <div class="layui-card-body">
-            <form class="layui-form" id="crud-form" style="max-width:600px;">
+            <form class="layui-form" id="crud-form-{{ resource }}" style="max-width:600px;">
                 {% for field, config in admin.getFormFields() %}
                 <div class="layui-form-item">
                     <label class="layui-form-label">{{ field }}</label>
@@ -49,7 +50,7 @@
                 <div class="layui-form-item">
                     <div class="layui-input-block">
                         <button type="submit" class="layui-btn">保存</button>
-                        <button type="button" class="layui-btn layui-btn-primary" id="back-btn">返回</button>
+                        <button type="button" class="layui-btn layui-btn-primary" id="back-btn-{{ resource }}">返回</button>
                     </div>
                 </div>
             </form>
@@ -64,7 +65,7 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
     var layer = layui.layer;
     var admin = layui.admin;
 
-    var resource = '{{ admin.getModel()|split('\\')|last|lower }}';
+    var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
     var isEdit = {{ action == 'edit' ? 'true' : 'false' }};
     var editId = {{ data.id ?? 0 }};
@@ -88,9 +89,9 @@ layui.use(['jquery', 'form', 'layer', 'admin'], function () {
         }, 200);
     }
 
-    document.getElementById('back-btn').addEventListener('click', backToList);
+    document.getElementById('back-btn-' + resource).addEventListener('click', backToList);
 
-    document.getElementById('crud-form').addEventListener('submit', function (e) {
+    document.getElementById('crud-form-' + resource).addEventListener('submit', function (e) {
         e.preventDefault();
         var formData = new FormData(this);
         var params = new URLSearchParams();
