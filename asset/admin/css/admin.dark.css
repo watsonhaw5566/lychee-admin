@@ -360,6 +360,10 @@
     background-color: #241B1E !important;
 }
 
+.pear-admin-dark .deputy-count {
+    color: #F5E8EA !important;
+}
+
 .pear-admin-dark .message-board li {
     border-bottom: 1px solid var(--border) !important;
 }

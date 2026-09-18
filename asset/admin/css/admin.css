@@ -619,3 +619,12 @@ body,
 		transform: scale(1.2, 1);
 	}
 }
+
+/* 仪表盘统计数字 */
+.deputy-count {
+	font-size: 32px;
+	font-weight: bold;
+	line-height: 1.4;
+	text-align: center;
+	color: #333;
+}
