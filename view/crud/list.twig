@@ -23,12 +23,23 @@
                     <i class="layui-icon layui-icon-add-1"></i> 新增
                 </button>
                 {% endif %}
+                {% if admin.canDelete() %}
+                <button class="layui-btn layui-btn-sm layui-btn-danger" id="batch-delete-btn-{{ resource }}">
+                    <i class="layui-icon layui-icon-delete"></i> 批量删除
+                </button>
+                {% endif %}
             </div>
 
             {# 数据表格 #}
+            <div class="layui-form">
             <table class="layui-table" lay-size="sm">
                 <thead>
                     <tr>
+                        {% if admin.canDelete() %}
+                        <th style="width:40px;text-align:center;">
+                            <input type="checkbox" id="check-all-{{ resource }}" lay-skin="primary" lay-filter="checkAll-{{ resource }}">
+                        </th>
+                        {% endif %}
                         {% for field in admin.getListFields() %}
                         <th>{{ admin.getFieldLabel(field) }}</th>
                         {% endfor %}
@@ -37,6 +48,7 @@
                 </thead>
                 <tbody id="data-body-{{ resource }}"></tbody>
             </table>
+            </div>
 
             {# 分页 #}
             <div id="pagination-{{ resource }}"></div>
@@ -45,14 +57,16 @@
 </div>
 
 <script>
-layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
+layui.use(['jquery', 'layer', 'laypage', 'admin', 'form'], function () {
     var $ = layui.jquery;
     var layer = layui.layer;
     var laypage = layui.laypage;
     var admin = layui.admin;
+    var form = layui.form;
 
     var resource = '{{ resource }}';
     var title = '{{ admin.getTitle() }}';
+    var canDelete = {{ admin.canDelete() ? 'true' : 'false' }};
     var currentPage = 1;
     var pageSize = 20;
 
@@ -82,9 +96,13 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
                 var tbody = document.getElementById('data-body-' + resource);
                 if (!tbody) return;
                 tbody.innerHTML = '';
+                $('#check-all-' + resource).prop('checked', false);
                 if (res.data && res.data.length) {
                     res.data.forEach(function (row) {
                         var tr = '<tr>';
+                        if (canDelete) {
+                            tr += '<td style="text-align:center;"><input type="checkbox" class="row-check" value="' + row.id + '" lay-skin="primary" lay-filter="rowCheck-' + resource + '"></td>';
+                        }
                         {% for field in admin.getListFields() %}
                         tr += '<td>' + (row['{{ field }}'] ?? '') + '</td>';
                         {% endfor %}
@@ -98,8 +116,9 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
                         tr += '</td></tr>';
                         tbody.innerHTML += tr;
                     });
+                    form.render('checkbox');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="{{ admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="{{ admin.canDelete() ? admin.getListFields()|length + 2 : admin.getListFields()|length + 1 }}" style="text-align:center;">暂无数据</td></tr>';
                 }
                 renderPagination(res.count || 0);
             })
@@ -132,6 +151,60 @@ layui.use(['jquery', 'layer', 'laypage', 'admin'], function () {
                 });
         });
     };
+
+    // 全选 / 取消全选
+    form.on('checkbox(checkAll-' + resource + ')', function (data) {
+        $('#data-body-' + resource + ' .row-check').prop('checked', data.elem.checked);
+        form.render('checkbox');
+    });
+
+    // 单个勾选变化时反向同步全选框
+    form.on('checkbox(rowCheck-' + resource + ')', function () {
+        syncCheckAll();
+    });
+
+    // 检查所有行 checkbox 是否全部选中，同步全选框状态
+    function syncCheckAll() {
+        var $rows = $('#data-body-' + resource + ' .row-check');
+        if ($rows.length === 0) {
+            $('#check-all-' + resource).prop('checked', false);
+        } else {
+            var allChecked = $rows.length === $rows.filter(':checked').length;
+            $('#check-all-' + resource).prop('checked', allChecked);
+        }
+        form.render('checkbox');
+    }
+
+    // 批量删除
+    document.getElementById('batch-delete-btn-' + resource)?.addEventListener('click', function () {
+        var ids = [];
+        document.querySelectorAll('#data-body-' + resource + ' .row-check:checked').forEach(function (cb) {
+            ids.push(cb.value);
+        });
+        if (ids.length === 0) {
+            layer.msg('请先选择要删除的数据', { icon: 0 });
+            return;
+        }
+        layer.confirm('确定删除选中的 ' + ids.length + ' 条数据？', { icon: 3, title: '提示' }, function (index) {
+            var params = new URLSearchParams();
+            ids.forEach(function (id) { params.append('ids[]', id); });
+            fetch('/admin/' + resource + '/batch', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    layer.close(index);
+                    if (res.code === 200) {
+                        layer.msg(res.msg || '删除成功', { icon: 1 });
+                        admin.instances.tabPage.refresh(false);
+                    } else {
+                        layer.msg(res.msg || '删除失败', { icon: 2 });
+                    }
+                });
+        });
+    });
 
     function renderPagination(count) {
         laypage.render({
