@@ -645,9 +645,6 @@ layui.define(['jquery', 'tools', 'element', 'yaml', 'form', 'tabPage', 'menu', '
 			moreItem +=
 				'<div class="layui-form-item"><div class="layui-input-inline" style="width:200px;"><input type="checkbox" name="footer" lay-filter="footer" lay-skin="switch"></div><span class="set-text">开启页脚</span></div>';
 
-			moreItem +=
-				'<div class="layui-form-item"><div class="layui-input-inline" style="width:200px;"><input type="checkbox" name="dark" lay-filter="dark" lay-skin="switch"></div><span class="set-text">夜间模式</span></div>';
-
 			var moreHtml = '<br><div class="pearone-color">\n' +
 				'<div class="color-title">更多设置</div>\n' +
 				'<div class="color-content">\n' +
@@ -710,16 +707,11 @@ layui.define(['jquery', 'tools', 'element', 'yaml', 'form', 'tabPage', 'menu', '
 					})
 
 					form.on('switch(footer)', function (data) {
-						localStorage.setItem("footer", this.checked);
-						pearAdmin.footer(this.checked);
-					})
+					localStorage.setItem("footer", this.checked);
+					pearAdmin.footer(this.checked);
+				})
 
-					form.on('switch(dark)', function (data) {
-						localStorage.setItem("dark", this.checked);
-						pearAdmin.switchTheme(this.checked);
-					})
-
-					if (localStorage.getItem('theme-banner') === 'true') {
+				if (localStorage.getItem('theme-banner') === 'true') {
 						$('input[name="banner"]').attr('checked', 'checked')
 					} else {
 						$('input[name="banner"]').removeAttr('checked')
@@ -738,18 +730,12 @@ layui.define(['jquery', 'tools', 'element', 'yaml', 'form', 'tabPage', 'menu', '
 					}
 
 					if (localStorage.getItem('footer') === 'true') {
-						$('input[name="footer"]').attr('checked', 'checked')
-					} else {
-						$('input[name="footer"]').removeAttr('checked')
-					}
+					$('input[name="footer"]').attr('checked', 'checked')
+				} else {
+					$('input[name="footer"]').removeAttr('checked')
+				}
 
-					if (localStorage.getItem('dark') === 'true') {
-						$('input[name="dark"]').attr('checked', 'checked')
-					} else {
-						$('input[name="dark"]').removeAttr('checked')
-					}
-
-					form.render('checkbox');
+				form.render('checkbox');
 				}
 			});
 		});

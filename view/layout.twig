@@ -27,6 +27,7 @@
             <ul class="layui-nav layui-layout-right">
                 <li class="layui-nav-item layui-hide-xs"><a href="#" class="fullScreen layui-icon layui-icon-screen-full"></a></li>
                 <li class="layui-nav-item layui-hide-xs message" lay-unselect></li>
+                <li class="layui-nav-item layui-hide-xs"><a href="#" id="theme-toggle" class="layui-icon layui-icon-moon" title="切换夜间模式"></a></li>
                 <li class="layui-nav-item layui-hide-xs"><a href="#" class="setting layui-icon layui-icon-theme"></a></li>
                 <li class="layui-nav-item user">
                     <a class="layui-icon layui-icon-username" href="javascript:;"></a>
@@ -174,6 +175,34 @@
 
             // 启动 pear-admin
             admin.render(pearConfig);
+
+            // 主题切换（日间/夜间模式）
+            (function () {
+                var $toggle = $('#theme-toggle');
+                var isDark = localStorage.getItem('dark') === 'true';
+
+                function syncIcon() {
+                    isDark = localStorage.getItem('dark') === 'true';
+                    if (isDark) {
+                        $toggle.removeClass('layui-icon-moon').addClass('layui-icon-light');
+                        $toggle.attr('title', '切换日间模式');
+                    } else {
+                        $toggle.removeClass('layui-icon-light').addClass('layui-icon-moon');
+                        $toggle.attr('title', '切换夜间模式');
+                    }
+                }
+
+                // 初始化图标
+                syncIcon();
+
+                $toggle.on('click', function (e) {
+                    e.preventDefault();
+                    isDark = !isDark;
+                    localStorage.setItem('dark', isDark);
+                    admin.switchTheme(isDark);
+                    syncIcon();
+                });
+            })();
         });
     </script>
 </body>
