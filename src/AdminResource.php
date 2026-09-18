@@ -45,10 +45,11 @@ abstract class AdminResource
      *   - required:   是否必填（true / false），必填字段 label 会显示 *，并参与前后端校验
      *   - rules:      think-validate 规则字符串，如 'email'、'length:6,20'、'number|between:1,120'
      *   - options:    select / radio / checkbox 的可选项
-     *   - multiple:   select 是否多选
+     *   - multiple:   select 是否多选；image / file 是否允许多文件上传（多文件存储为 JSON 数组）
      *
      * 示例：
-     *   'email' => ['type' => 'text', 'required' => true, 'rules' => 'email']
+     *   'email'  => ['type' => 'text', 'required' => true, 'rules' => 'email']
+     *   'images' => ['type' => 'image', 'multiple' => true]
      */
     protected array $formFields = [];
 

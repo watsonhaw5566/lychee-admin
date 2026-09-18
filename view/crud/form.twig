@@ -49,12 +49,32 @@
                         <input type="date" name="{{ field }}" value="{{ value }}" class="layui-input"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
 
                         {% elseif type == 'image' %}
-                        <input type="file" name="{{ field }}" accept="image/*" class="layui-input" style="height:auto;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
-                        {% if value %}<img src="{{ value }}" alt="预览" style="max-width:120px;margin-top:8px;border:1px solid #eee;">{% endif %}
+                        {% set isMultiple = config.multiple ?? false %}
+                        <input type="file" name="{{ field }}{% if isMultiple %}[]{% endif %}" accept="image/*" class="layui-input" style="height:auto;"{% if isMultiple %} multiple{% endif %}{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
+                        {% if isMultiple %}
+                            {% set imageList = value is iterable ? value : [] %}
+                            <div style="margin-top:8px;">
+                                {% for img in imageList %}
+                                    {% if img %}<img src="{{ img }}" alt="预览" style="max-width:120px;max-height:120px;border:1px solid #eee;margin-right:8px;margin-bottom:8px;display:inline-block;vertical-align:top;">{% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {% if value %}<img src="{{ value }}" alt="预览" style="max-width:120px;margin-top:8px;border:1px solid #eee;">{% endif %}
+                        {% endif %}
 
                         {% elseif type == 'file' %}
-                        <input type="file" name="{{ field }}" class="layui-input" style="height:auto;"{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
-                        {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
+                        {% set isMultiple = config.multiple ?? false %}
+                        <input type="file" name="{{ field }}{% if isMultiple %}[]{% endif %}" class="layui-input" style="height:auto;"{% if isMultiple %} multiple{% endif %}{% if layVerify %} lay-verify="{{ layVerify }}"{% endif %}>
+                        {% if isMultiple %}
+                            {% set fileList = value is iterable ? value : [] %}
+                            <div style="margin-top:4px;">
+                                {% for f in fileList %}
+                                    {% if f %}<div><a href="{{ f }}" target="_blank" style="font-size:12px;">{{ f }}</a></div>{% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {% if value %}<a href="{{ value }}" target="_blank" style="font-size:12px;">{{ value }}</a>{% endif %}
+                        {% endif %}
 
                         {% elseif type == 'richtext' %}
                         <div class="w-e-wrapper" data-richtext-field="{{ field }}">

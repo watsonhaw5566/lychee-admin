@@ -440,7 +440,7 @@ class AdminController extends Controller
             'admin'  => $admin,
             'title'  => '编辑' . $admin->getTitle(),
             'action' => 'edit',
-            'data'   => $data->toArray(),
+            'data'   => $this->normalizeFormData($admin, $data->toArray()),
         ]);
     }
 
@@ -684,18 +684,75 @@ class AdminController extends Controller
                 continue;
             }
 
-            $file = $this->request->file($field);
-            if ($file instanceof \Lychee\http\UploadedFile && $file->isValid()) {
-                $ext      = $file->extension() ?: 'bin';
-                $dir      = 'uploads/admin/' . date('Y-m');
-                $filename = uniqid() . '.' . $ext;
-                $path     = storage()->putFileAs($dir, $file, $filename);
-                if ($path !== false) {
-                    $data[$field] = $path;
+            $isMultiple = is_array($config) ? !empty($config['multiple']) : false;
+
+            if ($isMultiple) {
+                $files = $this->request->file($field);
+                if (is_array($files) && !empty($files)) {
+                    $paths = [];
+                    foreach ($files as $file) {
+                        if ($file instanceof UploadedFile && $file->isValid()) {
+                            $ext      = $file->extension() ?: 'bin';
+                            $dir      = 'uploads/admin/' . date('Y-m');
+                            $filename = uniqid() . '.' . $ext;
+                            $path     = storage()->putFileAs($dir, $file, $filename);
+                            if ($path !== false) {
+                                $paths[] = $path;
+                            }
+                        }
+                    }
+                    if (!empty($paths)) {
+                        $data[$field] = json_encode($paths, JSON_UNESCAPED_UNICODE);
+                    }
+                } elseif ($existing !== null) {
+                    // 编辑且未上传新文件：移除该字段，保留原值
+                    unset($data[$field]);
                 }
-            } elseif ($existing !== null) {
-                // 编辑且未上传新文件：移除该字段，保留原值
-                unset($data[$field]);
+            } else {
+                $file = $this->request->file($field);
+                if ($file instanceof UploadedFile && $file->isValid()) {
+                    $ext      = $file->extension() ?: 'bin';
+                    $dir      = 'uploads/admin/' . date('Y-m');
+                    $filename = uniqid() . '.' . $ext;
+                    $path     = storage()->putFileAs($dir, $file, $filename);
+                    if ($path !== false) {
+                        $data[$field] = $path;
+                    }
+                } elseif ($existing !== null) {
+                    // 编辑且未上传新文件：移除该字段，保留原值
+                    unset($data[$field]);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * 渲染表单前规范化数据：将多文件字段的 JSON 字符串解码为数组，便于模板遍历预览。
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function normalizeFormData(AdminResource $admin, array $data): array
+    {
+        foreach ($admin->getFormFields() as $field => $config) {
+            $type = is_array($config) ? ($config['type'] ?? 'text') : ($config ?? 'text');
+            if ($type !== 'image' && $type !== 'file') {
+                continue;
+            }
+
+            $isMultiple = is_array($config) ? !empty($config['multiple']) : false;
+            if (!$isMultiple) {
+                continue;
+            }
+
+            $value = $data[$field] ?? '';
+            if (is_string($value) && $value !== '') {
+                $decoded = json_decode($value, true);
+                if (is_array($decoded)) {
+                    $data[$field] = $decoded;
+                }
             }
         }
 
