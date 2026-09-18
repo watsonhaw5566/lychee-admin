@@ -159,7 +159,7 @@ class AdminController extends Controller
                 'title'   => (string) $row['title'],
                 'context' => (string) $row['content'],
                 'form'    => '',
-                'time'    => $this->formatTime((string) ($row['created_at'] ?? '')),
+                'time'    => $this->formatTime((string) ($row['create_time'] ?? '')),
                 'avatar'  => '',
             ];
         }
