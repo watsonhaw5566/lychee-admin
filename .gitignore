@@ -5,3 +5,5 @@
 vendor/
 
 pear-admin
+
+composer.lock
