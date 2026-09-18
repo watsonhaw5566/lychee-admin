@@ -78,17 +78,29 @@ class AdminServiceProvider implements PluginInterface
     }
 
     /**
-     * 注册内置资源。
+     * 注册内置资源与用户自定义资源。
+     *
+     * 用户自定义资源通过 config/admin.php 的 resources 配置声明，
+     * 框架启动时自动注册，无需编写插件入口类。
+     *
+     * 注册以模型类名为 key，用户资源会覆盖内置同名模型资源。
      */
     private function registerResources(Container $container): void
     {
         /** @var AdminManager $manager */
         $manager = $container->get(AdminManager::class);
 
+        // 内置资源
         $manager->register(UserAdmin::class);
         $manager->register(RoleAdmin::class);
         $manager->register(MenuAdmin::class);
         $manager->register(PermissionAdmin::class);
+
+        // 用户自定义资源（来自 config/admin.php 的 resources 配置）
+        $userResources = (array) $container->get('config')->get('admin.resources', []);
+        foreach ($userResources as $resourceClass) {
+            $manager->register((string) $resourceClass);
+        }
     }
 
     /**

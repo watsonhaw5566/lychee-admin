@@ -137,10 +137,30 @@ class ArticleAdmin extends AdminResource
 }
 ```
 
-在 `AdminServiceProvider` 或插件启动逻辑中注册：
+### 注册资源到后台
+
+资源类创建后，只需在项目 `config/admin.php` 中声明 `resources` 数组，框架启动时会自动注册，**无需编写插件入口类**。
 
 ```php
-app(AdminManager::class)->register(ArticleAdmin::class);
+<?php
+// config/admin.php
+
+return [
+    'resources' => [
+        App\Admin\ArticleAdmin::class,
+        App\Admin\CategoryAdmin::class,
+    ],
+];
+```
+
+> 注册以**模型类名为 key**，用户资源在内置资源之后注册，因此会自动覆盖内置的同名模型资源。
+
+**完整流程**：
+
+```
+1. 创建资源类  → src/Admin/ArticleAdmin.php（继承 AdminResource）
+2. 注册资源    → 在 config/admin.php 的 resources 数组中加入类名
+3. 刷新页面    → 后台菜单自动出现你的资源，CRUD 界面自动生成
 ```
 
 ### 字段标签
@@ -299,12 +319,20 @@ class MyUserAdmin extends UserAdmin
         return parent::beforeSave($data, $existing);
     }
 }
-
-// 注册时以模型类名为 key，后注册的覆盖先注册的
-app(\LycheeAdmin\AdminManager::class)->register(MyUserAdmin::class);
 ```
 
-> 注册以**模型类名为 key**，后注册的会覆盖先注册的，因此你的自定义资源会自动替换内置实现。
+然后在 `config/admin.php` 中注册你的自定义资源即可覆盖内置实现：
+
+```php
+// config/admin.php
+return [
+    'resources' => [
+        App\Admin\MyUserAdmin::class,
+    ],
+];
+```
+
+> 注册以**模型类名为 key**，用户资源在内置资源之后注册，因此会自动覆盖内置的同名模型资源。
 
 ## License
 
